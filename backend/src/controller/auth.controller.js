@@ -30,7 +30,7 @@ const sendTokenResponse = async (user, res, message) => {
 
 export const userRegister = async (req, res) => {
   try {
-    const { email, password, name, role } = req.body;
+    const { email, password, name, role, phone } = req.body;
     const userExists = await userModel.findOne({
       $or: [{ email }, { phone }],
     });
@@ -75,14 +75,7 @@ export const userLogin = async (req, res) => {
       });
     }
 
-    sendTokenResponse(user, res, 'User logged in successfully');
-
-    return res.status(200).json({
-      success: true,
-      message: 'User logged in successfully',
-      user: user,
-      token,
-    });
+    return sendTokenResponse(user, res, 'User logged in successfully');
   } catch (error) {
     return res.status(500).json({
       success: false,

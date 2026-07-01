@@ -1,13 +1,12 @@
 import mongoose from 'mongoose';
 import { Config } from './config.js';
 
-export const dbConnection = () => {
-  mongoose
-    .connect(Config.DB_URI)
-    .then(() => {
-      console.log('Database connected successfully');
-    })
-    .catch((error) => {
-      console.log('Database connection failed', error);
-    });
+export const dbConnection = async () => {
+  try {
+    const conn = await mongoose.connect(Config.DB_URI);
+    console.log(`Database connected successfully: ${conn.connection.host}`);
+  } catch (error) {
+    console.log('Database connection failed', error);
+    throw error;
+  }
 };
