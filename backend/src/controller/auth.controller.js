@@ -84,3 +84,43 @@ export const userLogin = async (req, res) => {
     });
   }
 };
+
+export const googleAuthCallBack = async (req, res) => {
+  try {
+    const { id, displayName, emails, photos } = req.user;
+    const email = emails?.[0]?.value;
+    const profilePic = photos?.[0]?.value;
+
+    if (!email) {
+      return res.redirect(
+        `http://localhost:5173/login?error=google_auth_failed`,
+      );
+    }
+
+    let user = await userModel.findOne({ email: email });
+    if (!user) {
+      user = await userModel.create({
+        email: email,
+        googleId: id,
+        name: { firstName: displayName },
+        profilePic,
+      });
+    }
+
+    const token = jwt.sign({ id: user._id }, Config.JWT_SECRET, {
+      expiresIn: '7d',
+    });
+
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'strict',
+      maxAge: 24 * 60 * 60 * 1000,
+    });
+
+    res.redirect(`http://localhost:5173/`);
+  } catch (error) {
+    console.error('Google Auth Error:', error);
+    res.redirect(`http://localhost:5173/login?error=google_auth_failed`);
+  }
+};

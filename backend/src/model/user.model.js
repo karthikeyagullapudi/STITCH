@@ -10,7 +10,13 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: true,
+      required: function () {
+        return !this.googleId;
+      },
+    },
+    googleId: {
+      type: String,
+      required: false,
     },
     name: {
       firstName: {
@@ -19,13 +25,14 @@ const userSchema = new mongoose.Schema(
       },
       lastName: {
         type: String,
-        required: true,
+        required: false,
       },
     },
     phone: {
       type: String,
-      required: true,
+      required: false,
       unique: true,
+      sparse: true,
     },
     role: {
       type: String,
@@ -40,6 +47,10 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    profilePic: {
+      type: String,
+      required: false,
+    },
     status: {
       type: Boolean,
       default: true,
@@ -49,9 +60,9 @@ const userSchema = new mongoose.Schema(
 );
 
 userSchema.pre('save', async function () {
-  if (!this.isModified('password')) return;
+  if (!this.isModified('password') || !this.password) return;
   const salt = await bcrypt.genSalt(10);
-  this.password = bcrypt.hash(this.password, salt);
+  this.password = await bcrypt.hash(this.password, salt);
 });
 
 userSchema.methods.comparePasswords = async function (candidatePassword) {
