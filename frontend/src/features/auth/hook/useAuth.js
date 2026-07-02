@@ -28,10 +28,12 @@ export const useAuth = () => {
       dispatch(setUser(data));
       return { success: true };
     } catch (error) {
-      const errorMsg = error?.response?.data?.message ||
-                       (error?.response?.data?.errors && error.response.data.errors.map(e => e.msg).join(', ')) ||
-                       error?.message ||
-                       'Registration failed';
+      const errorMsg =
+        error?.response?.data?.message ||
+        (error?.response?.data?.errors &&
+          error.response.data.errors.map((e) => e.msg).join(', ')) ||
+        error?.message ||
+        'Registration failed';
       dispatch(setError(errorMsg));
       console.log(error);
       return { success: false, error: errorMsg };

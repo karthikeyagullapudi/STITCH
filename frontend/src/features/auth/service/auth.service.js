@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const authApiInstance = axios.create({
-  baseURL: 'http://localhost:3000/api/auth',
+  baseURL: 'http://localhost:3000/api',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -16,7 +16,7 @@ export const register = async ({
   role,
 }) => {
   try {
-    const response = await authApiInstance.post('/register', {
+    const response = await authApiInstance.post('/auth/register', {
       email,
       password,
       name: {
@@ -34,7 +34,10 @@ export const register = async ({
 
 export const login = async ({ email, password }) => {
   try {
-    const response = await authApiInstance.post('/login', { email, password });
+    const response = await authApiInstance.post('/auth/login', {
+      email,
+      password,
+    });
     return response.data;
   } catch (error) {
     throw error;
@@ -43,7 +46,7 @@ export const login = async ({ email, password }) => {
 
 export const getMe = async () => {
   try {
-    const response = await authApiInstance.get('/me');
+    const response = await authApiInstance.get('/auth/me');
     return response.data;
   } catch (error) {
     throw error;

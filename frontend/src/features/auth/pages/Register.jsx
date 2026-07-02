@@ -265,7 +265,13 @@ const Register = () => {
 
             {/* Social */}
             <div className="grid grid-cols-2 gap-4">
-              <button type="button" className={socialBtnCls}>
+              <button
+                type="button"
+                className={socialBtnCls}
+                onClick={() => {
+                  window.location.href = 'http://localhost:3000/api/auth/google';
+                }}
+              >
                 <FaGoogle className="h-4 w-4" />
                 Google
               </button>
