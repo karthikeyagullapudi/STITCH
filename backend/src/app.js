@@ -6,6 +6,7 @@ import cookieParser from 'cookie-parser';
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { Config } from './config/config.js';
+import productRouter from './routes/product.router.js';
 
 const app = express();
 
@@ -30,9 +31,10 @@ passport.use(
     },
     (accessToken, refreshToken, profile, done) => {
       done(null, profile);
-    }
-  )
+    },
+  ),
 );
 
 app.use('/api/auth', authRouter);
+app.use('/api/products', productRouter);
 export default app;

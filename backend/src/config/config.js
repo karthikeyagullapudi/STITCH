@@ -30,6 +30,10 @@ if (!process.env.NODE_ENV) {
   throw new Error('NODE_ENV is not defined');
 }
 
+if (!process.env.NODE_ENV) {
+  throw new Error('IMAGEKIT_PRIVATE_KEY is not defined');
+}
+
 export const Config = {
   PORT: process.env.PORT,
   DB_URI: process.env.DB_URI,
@@ -38,4 +42,5 @@ export const Config = {
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
   GOOGLE_CALLBACK_URL: process.env.GOOGLE_CALLBACK_URL,
   NODE_ENV: process.env.NODE_ENV || 'development',
+  IMAGEKIT_PRIVATE_KEY: process.env.IMAGEKIT_PRIVATE_KEY,
 };
