@@ -34,3 +34,34 @@ export const protect = async (req, res, next) => {
     });
   }
 };
+
+export const authAdmin = async (req, res, next) => {
+  const token = req.cookies?.token;
+
+  if (!token) {
+    return res.status(401).json({
+      success: false,
+      message: 'Not authorized,no token',
+    });
+  }
+
+  const decoded = jwt.verify(token, Config.JWT_SECRET);
+  const user = userModel.findById(decoded.id).select('-password');
+
+  if (!user) {
+    return res.status(401).json({
+      success: false,
+      message: 'Not authorized,user not found',
+    });
+  }
+
+  if (user.role !== 'admin') {
+    return res.status(401).json({
+      success: false,
+      message: 'Not authorized,admin role required',
+    });
+  }
+
+  req.user = user;
+  next();
+};

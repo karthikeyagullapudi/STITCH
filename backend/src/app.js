@@ -30,9 +30,10 @@ passport.use(
     },
     (accessToken, refreshToken, profile, done) => {
       done(null, profile);
-    }
-  )
+    },
+  ),
 );
 
 app.use('/api/auth', authRouter);
+app.use('/api/product', productRouter);
 export default app;
