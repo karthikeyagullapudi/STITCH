@@ -1,16 +1,20 @@
-import productModel from '../model/product.model';
-import { uploadFile } from '../services/storage.services';
+import productModel from '../model/product.model.js';
+import { uploadFile } from '../services/storage.services.js';
 
 export const createProduct = async (req, res) => {
-  const { title, discription, price } = req.body;
-  const seller = req.user;
+  const { title, discription, price, stock } = req.body;
+  const admin = req.user;
 
   const images = await Promise.all(
     req.files.map(async (file) => {
-      return await uploadFile({
+      const uploadResult = await uploadFile({
         buffer: file.buffer,
         fileName: file.originalname,
       });
+      return {
+        url: uploadResult.fileUrl,
+        alt: file.originalname || title,
+      };
     }),
   );
 
@@ -22,7 +26,8 @@ export const createProduct = async (req, res) => {
       currency: 'INR',
     },
     images,
-    seller: req.user._id,
+    admin: req.user._id,
+    stock,
   });
 
   if (!product) {
@@ -36,5 +41,24 @@ export const createProduct = async (req, res) => {
     success: true,
     message: 'Product created successfully',
     product,
+  });
+};
+
+export const getAdminProducts = async (req, res) => {
+  const admin = req.user;
+
+  const products = await productModel.find({ admin: admin._id });
+
+  if (!products) {
+    return res.status(404).json({
+      success: false,
+      message: 'No products found',
+    });
+  }
+
+  return res.status(200).json({
+    success: true,
+    message: 'Products fetched successfully',
+    products,
   });
 };

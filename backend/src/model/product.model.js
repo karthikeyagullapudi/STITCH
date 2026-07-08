@@ -10,9 +10,9 @@ const productSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    seller: {
+    admin: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'user',
+      ref: 'users',
       required: true,
     },
     price: {
@@ -31,16 +31,18 @@ const productSchema = new mongoose.Schema(
       required: true,
       default: 0,
     },
-    images: {
-      url: {
-        type: String,
-        required: true,
+    images: [
+      {
+        url: {
+          type: String,
+          required: true,
+        },
+        alt: {
+          type: String,
+          required: true,
+        },
       },
-      alt: {
-        type: String,
-        required: true,
-      },
-    },
+    ],
     status: {
       type: Boolean,
       default: true,

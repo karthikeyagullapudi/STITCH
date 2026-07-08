@@ -46,7 +46,7 @@ export const authAdmin = async (req, res, next) => {
   }
   try {
     const decoded = jwt.verify(token, Config.JWT_SECRET);
-    const user = userModel.findById(decoded.id).select('-password');
+    const user = await userModel.findById(decoded.id).select('-password');
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -59,6 +59,7 @@ export const authAdmin = async (req, res, next) => {
         message: 'Not authorized, user is not an admin',
       });
     }
+    req.user = user;
     next();
   } catch (error) {
     return res.status(401).json({
