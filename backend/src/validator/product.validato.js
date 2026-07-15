@@ -16,7 +16,7 @@ export const createProductValidator = [
     .isString()
     .withMessage('Title must be a string'),
 
-  body('discription')
+  body('description')
     .trim()
     .notEmpty()
     .withMessage('Description is required')
@@ -34,14 +34,12 @@ export const createProductValidator = [
     .isInt({ min: 0 })
     .withMessage('Stock must be a non-negative integer'),
 
-  body('images')
-    .custom((value, { req }) => {
-      if (!req.files || req.files.length === 0) {
-        throw new Error('At least one product image is required');
-      }
-      return true;
-    }),
+  body('images').custom((value, { req }) => {
+    if (!req.files || req.files.length === 0) {
+      throw new Error('At least one product image is required');
+    }
+    return true;
+  }),
 
   validate,
 ];
-

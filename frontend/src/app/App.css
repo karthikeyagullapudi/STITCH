@@ -10,8 +10,9 @@
   --font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
 
   --color-ink: #0a0a0a; /* page background (near-black) */
+  --color-panel: #0e0e0e; /* sidebars + admin input fills */
   --color-surface: #131313; /* slightly raised surfaces */
-  --color-field: #161616; /* input fill */
+  --color-field: #161616; /* card / input fill */
   --color-line: #2a2a2a; /* borders / dividers */
   --color-accent: #ff5c00; /* hot-orange accent */
   --color-paper: #e4e2e1; /* primary text (near-white) */

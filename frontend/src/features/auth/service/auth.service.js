@@ -32,11 +32,12 @@ export const register = async ({
   }
 };
 
-export const login = async ({ email, password }) => {
+export const login = async ({ email, password, role }) => {
   try {
     const response = await authApiInstance.post('/auth/login', {
       email,
       password,
+      role,
     });
     return response.data;
   } catch (error) {

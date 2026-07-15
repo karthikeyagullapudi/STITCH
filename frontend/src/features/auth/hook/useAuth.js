@@ -42,15 +42,23 @@ export const useAuth = () => {
     }
   };
 
-  const handleLogin = async ({ email, password }) => {
+  const handleLogin = async ({ email, password, role }) => {
     try {
       dispatch(setLoading(true));
-      const data = await login({ email, password });
-      dispatch(setUser(data));
       dispatch(setError(null));
+      const data = await login({ email, password, role });
+      dispatch(setUser(data.user));
+      return { success: true, user: data.user };
     } catch (error) {
-      dispatch(setError(error?.response?.data?.message));
+      const errorMsg =
+        error?.response?.data?.message ||
+        (error?.response?.data?.errors &&
+          error.response.data.errors.map((e) => e.msg).join(', ')) ||
+        error?.message ||
+        'Login failed';
+      dispatch(setError(errorMsg));
       console.log(error);
+      return { success: false, error: errorMsg };
     } finally {
       dispatch(setLoading(false));
     }

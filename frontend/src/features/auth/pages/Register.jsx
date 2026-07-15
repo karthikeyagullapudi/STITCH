@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router';
-import { FiEye } from 'react-icons/fi';
+import { FiEye, FiUser, FiShield } from 'react-icons/fi';
 import { FaGoogle, FaApple } from 'react-icons/fa';
 import { useState } from 'react';
 import { useSelector } from 'react-redux';
@@ -12,6 +12,11 @@ const inputCls =
 const socialBtnCls =
   'flex h-12 items-center justify-center gap-2 rounded-[4px] border border-line font-display text-xs font-bold uppercase tracking-[0.1em] text-paper transition-colors hover:bg-field';
 
+const roleTabs = [
+  { role: 'user', label: 'User', icon: FiUser },
+  { role: 'admin', label: 'Admin', icon: FiShield },
+];
+
 const Register = () => {
   const [formData, setFormData] = useState({
     firstName: '',
@@ -21,6 +26,7 @@ const Register = () => {
     password: '',
     confirmPassword: '',
   });
+  const [accountType, setAccountType] = useState('user');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [localError, setLocalError] = useState(null);
@@ -54,11 +60,11 @@ const Register = () => {
         lastName: formData.lastName,
       },
       phone: formData.phone,
-      role: 'user',
+      role: accountType,
     });
 
     if (result && result.success) {
-      navigate('/');
+      navigate('/login');
     }
   };
 
@@ -78,9 +84,30 @@ const Register = () => {
                   Create Account
                 </h1>
                 <p className="mt-2 text-muted">
-                  Join the drop. Members get early access.
+                  {accountType === 'admin'
+                    ? 'Set up an admin account to manage the catalogue.'
+                    : 'Join the drop. Members get early access.'}
                 </p>
               </div>
+            </div>
+
+            {/* User / Admin tabs */}
+            <div className="mb-6 grid grid-cols-2 gap-1 rounded-[4px] border border-line bg-field p-1">
+              {roleTabs.map(({ role, label, icon: Icon }) => (
+                <button
+                  key={role}
+                  type="button"
+                  onClick={() => setAccountType(role)}
+                  className={`flex h-11 items-center justify-center gap-2 rounded-[2px] font-display text-xs font-bold uppercase tracking-[0.15em] transition-colors ${
+                    accountType === role
+                      ? 'bg-accent text-ink'
+                      : 'text-muted hover:text-paper'
+                  }`}
+                >
+                  <Icon className="h-4 w-4" />
+                  {label}
+                </button>
+              ))}
             </div>
 
             {/* Error alerts */}
@@ -217,7 +244,7 @@ const Register = () => {
               {/* Checkboxes */}
               <div className="space-y-3">
                 <label className="flex cursor-pointer items-start gap-3 select-none">
-                  <input type="checkbox" required className="stitch-checkbox mt-0.5" />
+                  <input type="checkbox" name="agreeToTerms" required className="stitch-checkbox mt-0.5" />
                   <span className="text-sm leading-snug text-muted">
                     I agree to the{' '}
                     <a
@@ -237,7 +264,7 @@ const Register = () => {
                   </span>
                 </label>
                 <label className="flex cursor-pointer items-start gap-3 select-none">
-                  <input type="checkbox" className="stitch-checkbox mt-0.5" />
+                  <input type="checkbox" name="subscribeToNewsletter" className="stitch-checkbox mt-0.5" />
                   <span className="text-sm leading-snug text-muted">
                     Subscribe to drop alerts &amp; newsletter.
                   </span>
@@ -250,36 +277,43 @@ const Register = () => {
                 disabled={loading}
                 className="mt-1 h-[52px] w-full rounded-[4px] bg-accent font-display text-sm font-bold uppercase tracking-[0.15em] text-ink transition hover:brightness-110 active:scale-[0.99] disabled:opacity-55"
               >
-                {loading ? 'Registering...' : 'Create Account'}
+                {loading
+                  ? 'Registering...'
+                  : accountType === 'admin'
+                    ? 'Create Admin Account'
+                    : 'Create Account'}
               </button>
             </form>
 
-            {/* Divider */}
-            <div className="my-6 flex items-center gap-4">
-              <div className="h-px flex-1 bg-line" />
-              <span className="font-display text-[10px] font-bold uppercase tracking-[0.2em] text-faint">
-                or sign up with
-              </span>
-              <div className="h-px flex-1 bg-line" />
-            </div>
+            {/* Social — user accounts only, Google sign-in always creates a user account */}
+            {accountType === 'user' && (
+              <>
+                <div className="my-6 flex items-center gap-4">
+                  <div className="h-px flex-1 bg-line" />
+                  <span className="font-display text-[10px] font-bold uppercase tracking-[0.2em] text-faint">
+                    or sign up with
+                  </span>
+                  <div className="h-px flex-1 bg-line" />
+                </div>
 
-            {/* Social */}
-            <div className="grid grid-cols-2 gap-4">
-              <button
-                type="button"
-                className={socialBtnCls}
-                onClick={() => {
-                  window.location.href = 'http://localhost:3000/api/auth/google';
-                }}
-              >
-                <FaGoogle className="h-4 w-4" />
-                Google
-              </button>
-              <button type="button" className={socialBtnCls}>
-                <FaApple className="h-4 w-4" />
-                Apple
-              </button>
-            </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    type="button"
+                    className={socialBtnCls}
+                    onClick={() => {
+                      window.location.href = 'http://localhost:3000/api/auth/google';
+                    }}
+                  >
+                    <FaGoogle className="h-4 w-4" />
+                    Google
+                  </button>
+                  <button type="button" className={socialBtnCls}>
+                    <FaApple className="h-4 w-4" />
+                    Apple
+                  </button>
+                </div>
+              </>
+            )}
 
             {/* Footer link */}
             <p className="mt-6 text-center text-muted">

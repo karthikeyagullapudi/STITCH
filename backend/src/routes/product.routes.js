@@ -24,6 +24,6 @@ productRouter.post(
   createProduct,
 );
 
-productRouter.get('/admin/my-products', authAdmin, getAdminProducts);
+productRouter.get('/admin/all-products', authAdmin, getAdminProducts);
 
 export default productRouter;

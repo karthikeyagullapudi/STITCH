@@ -56,5 +56,9 @@ export const loginValidation = [
     .withMessage('Please provide a valid email')
     .normalizeEmail(),
   body('password').trim().notEmpty().withMessage('Password is required'),
+  body('role')
+    .optional()
+    .isIn(['admin', 'user'])
+    .withMessage('Role must be either admin or user'),
   validate,
 ];

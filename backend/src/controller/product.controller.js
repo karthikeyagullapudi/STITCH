@@ -2,7 +2,7 @@ import productModel from '../model/product.model.js';
 import { uploadFile } from '../services/storage.services.js';
 
 export const createProduct = async (req, res) => {
-  const { title, discription, price, stock } = req.body;
+  const { title, description, price, stock } = req.body;
   const admin = req.user;
 
   const images = await Promise.all(
@@ -20,7 +20,7 @@ export const createProduct = async (req, res) => {
 
   const product = await productModel.create({
     title,
-    discription,
+    description,
     price: {
       amount: price,
       currency: 'INR',

@@ -39,6 +39,13 @@ const userSchema = new mongoose.Schema(
       enum: ['admin', 'user'],
       default: 'user',
     },
+    adminAproved: {
+      type: Boolean,
+      default: false,
+      required: function () {
+        return this.role === 'admin';
+      },
+    },
     emailVerification: {
       type: Boolean,
       default: false,

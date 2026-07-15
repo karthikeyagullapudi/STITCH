@@ -1,6 +1,8 @@
 import { createBrowserRouter } from 'react-router';
 import Login from '../features/auth/pages/Login.jsx';
 import Register from '../features/auth/pages/Register.jsx';
+import AllProducts from '../features/products/pages/AllProducts.jsx';
+import CreateProduct from '../features/products/pages/CreateProduct.jsx';
 
 const router = createBrowserRouter([
   {
@@ -14,6 +16,14 @@ const router = createBrowserRouter([
   {
     path: '/register',
     element: <Register />,
+  },
+  {
+    path: '/admin/products',
+    element: <AllProducts />,
+  },
+  {
+    path: '/admin/products/new',
+    element: <CreateProduct />,
   },
 ]);
 
