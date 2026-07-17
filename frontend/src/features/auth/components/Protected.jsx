@@ -1,5 +1,6 @@
 import React from 'react';
 import { useSelector } from 'react-redux';
+import { Navigate } from 'react-router';
 
 const Protected = ({ children, role = 'user' }) => {
   const { user, loading, error } = useSelector((state) => state.auth);

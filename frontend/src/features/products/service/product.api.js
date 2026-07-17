@@ -22,3 +22,12 @@ export const getAdminProducts = async () => {
     throw error.response?.data || { message: 'Failed to fetch products' };
   }
 };
+
+export const getsAllProducts = async () => {
+  try {
+    const response = await productApiInstance.get('/all-products');
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Failed to fetch products' };
+  }
+};

@@ -45,5 +45,22 @@ export const useProduct = () => {
     }
   };
 
+  const handleGetAllProducts = async () => {
+    try {
+      dispatch(setLoading(true));
+      dispatch(setError(null));
+      const data = await getsAllProducts();
+      dispatch(setAllProducts(data?.products));
+      return data?.products;
+    } catch (error) {
+      const errorMsg = error?.message || 'Failed to fetch products';
+      dispatch(setError(errorMsg));
+      console.log(error);
+      return [];
+    } finally {
+      dispatch(setLoading(false));
+    }
+  };
+
   return { handleCreateProduct, handleGetAdminProducts };
 };
