@@ -37,7 +37,7 @@ const StatusBadge = ({ status }) => {
   );
 };
 
-const AllProducts = () => {
+const AllAdminProducts = () => {
   const { handleGetAdminProducts } = useProduct();
   const { adminProducts, loading, errors } = useSelector((state) => state.product);
 
@@ -295,4 +295,4 @@ const AllProducts = () => {
   );
 };
 
-export default AllProducts;
+export default AllAdminProducts;

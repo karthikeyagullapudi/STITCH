@@ -3,6 +3,7 @@ import { authAdmin } from '../middleware/auth.middleware.js';
 import {
   createProduct,
   getAdminProducts,
+  getAllProducts,
 } from '../controller/product.controller.js';
 import { createProductValidator } from '../validator/product.validato.js';
 import multer from 'multer';
@@ -25,5 +26,7 @@ productRouter.post(
 );
 
 productRouter.get('/admin/all-products', authAdmin, getAdminProducts);
+
+productRouter.get('/all-products', getAllProducts);
 
 export default productRouter;

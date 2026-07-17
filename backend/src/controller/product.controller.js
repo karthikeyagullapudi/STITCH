@@ -62,3 +62,20 @@ export const getAdminProducts = async (req, res) => {
     products,
   });
 };
+
+export const getAllProducts = async (req, res) => {
+  const result = await productModel.find();
+
+  if (!result) {
+    return res.status(404).json({
+      success: false,
+      message: 'No products found',
+    });
+  }
+
+  return res.status(200).json({
+    success: true,
+    message: 'Products fetched successfully',
+    result,
+  });
+};
