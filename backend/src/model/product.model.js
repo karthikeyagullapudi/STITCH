@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 export const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 export const PRODUCT_STATUS = ['active', 'draft', 'archived'];
 export const CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'INR'];
+export const GENDERS = ['men', 'women', 'unisex'];
 
 const imageSchema = new mongoose.Schema(
   {
@@ -27,6 +28,45 @@ const colorwaySchema = new mongoose.Schema(
     },
   },
   { _id: false },
+);
+
+const variantSchema = new mongoose.Schema(
+  {
+    size: {
+      type: String,
+      enum: SIZES,
+      uppercase: true,
+    },
+    colorway: {
+      type: colorwaySchema,
+    },
+    sku: {
+      type: String,
+      trim: true,
+      uppercase: true,
+    },
+    stock: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    price: {
+      amount: {
+        type: Number,
+        min: 0,
+      },
+      currency: {
+        type: String,
+        enum: CURRENCIES,
+        default: 'INR',
+      },
+    },
+    images: {
+      type: [imageSchema],
+      default: [],
+    },
+  },
+  { _id: true },
 );
 
 const productSchema = new mongoose.Schema(
@@ -112,8 +152,8 @@ const productSchema = new mongoose.Schema(
     },
 
     /* ---- Variants ---- */
-    sizes: {
-      type: [{ type: String, enum: SIZES, uppercase: true }],
+    variants: {
+      type: [variantSchema],
       default: [],
     },
     colorways: {
@@ -122,6 +162,11 @@ const productSchema = new mongoose.Schema(
     },
 
     /* ---- Organization ---- */
+    gender: {
+      type: String,
+      required: true,
+      enum: GENDERS,
+    },
     category: {
       type: String,
       trim: true,
@@ -143,7 +188,7 @@ const productSchema = new mongoose.Schema(
           .filter(Boolean),
     },
 
-    /* ---- Publish status ---- */
+    /* ---- publish status ---- */
     status: {
       type: String,
       enum: PRODUCT_STATUS,
