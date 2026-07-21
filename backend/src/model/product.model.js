@@ -9,7 +9,6 @@ const imageSchema = new mongoose.Schema(
   {
     url: { type: String, required: true },
     alt: { type: String, default: '' },
-    // ImageKit file id — kept so the asset can be deleted later.
     fileId: { type: String },
   },
   { _id: false },
@@ -21,7 +20,10 @@ const colorwaySchema = new mongoose.Schema(
     hex: {
       type: String,
       required: true,
-      match: [/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/, 'Colorway hex must be a valid color'],
+      match: [
+        /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/,
+        'Colorway hex must be a valid color',
+      ],
     },
   },
   { _id: false },
@@ -35,7 +37,6 @@ const productSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-    // URL slug (auto-generated from title in the controller when omitted).
     slug: {
       type: String,
       unique: true,
@@ -76,13 +77,11 @@ const productSchema = new mongoose.Schema(
         default: 'INR',
       },
     },
-    // "Compare at" / original price shown struck-through on the storefront.
     compareAtPrice: {
       type: Number,
       min: 0,
       default: null,
     },
-    // Internal cost per item (for margin reporting; never exposed publicly).
     costPerItem: {
       type: Number,
       min: 0,
@@ -99,7 +98,7 @@ const productSchema = new mongoose.Schema(
       trim: true,
       uppercase: true,
       unique: true,
-      sparse: true, // allow many products without an SKU
+      sparse: true,
     },
     stock: {
       type: Number,
@@ -127,7 +126,6 @@ const productSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
-    // Named `collectionName` because `collection` is a reserved Mongoose path.
     collectionName: {
       type: String,
       trim: true,
@@ -157,7 +155,12 @@ const productSchema = new mongoose.Schema(
 );
 
 // Full-text search to back the admin catalogue search box.
-productSchema.index({ title: 'text', description: 'text', tags: 'text', sku: 'text' });
+productSchema.index({
+  title: 'text',
+  description: 'text',
+  tags: 'text',
+  sku: 'text',
+});
 
 const productModel = mongoose.model('product', productSchema);
 export default productModel;

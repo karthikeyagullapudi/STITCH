@@ -4,6 +4,7 @@ import {
   createProduct,
   getAdminProducts,
   getAllProducts,
+  getProductById,
 } from '../controller/product.controller.js';
 import { createProductValidator } from '../validator/product.validato.js';
 import multer from 'multer';
@@ -28,5 +29,7 @@ productRouter.post(
 productRouter.get('/admin/all-products', authAdmin, getAdminProducts);
 
 productRouter.get('/all-products', getAllProducts);
+
+productRouter.get('/product/:productId', getProductById);
 
 export default productRouter;

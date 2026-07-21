@@ -1,10 +1,12 @@
 import { createBrowserRouter } from 'react-router';
 import Login from '../features/auth/pages/Login.jsx';
 import Register from '../features/auth/pages/Register.jsx';
-import AllAdminProducts from '../features/products/pages/AllAdminProducts.jsx';
-import CreateProduct from '../features/products/pages/CreateProduct.jsx';
-import LandingPage from '../features/products/pages/LandingPage.jsx';
-import Cart from '../features/products/pages/Cart.jsx';
+import AllAdminProducts from '../features/products/pages/admin/AllAdminProducts.jsx';
+import CreateProduct from '../features/products/pages/admin/CreateProduct.jsx';
+import LandingPage from '../features/products/pages/user/LandingPage.jsx';
+import Cart from '../features/products/pages/user/Cart.jsx';
+import MensCollection from '../features/products/pages/user/AllProducts.jsx';
+import Product from '../features/products/pages/user/Product.jsx';
 import Protected from '../features/auth/components/Protected.jsx';
 
 const router = createBrowserRouter([
@@ -23,6 +25,14 @@ const router = createBrowserRouter([
   {
     path: '/cart',
     element: <Cart />,
+  },
+  {
+    path: '/collections/mens',
+    element: <MensCollection />,
+  },
+  {
+    path: '/product/:productId',
+    element: <Product />,
   },
 
   {

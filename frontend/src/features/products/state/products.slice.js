@@ -5,6 +5,7 @@ const productSlice = createSlice({
   initialState: {
     adminProducts: [],
     allProducts: [],
+    productdetail: {},
     loading: false,
     errors: null,
   },

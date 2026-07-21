@@ -11,20 +11,28 @@ import {
   FiGrid,
   FiMoreVertical,
 } from 'react-icons/fi';
-import AdminLayout from '../components/AdminLayout.jsx';
-import { useProduct } from '../hook/useProduct.js';
+import AdminLayout from '../../components/AdminLayout.jsx';
+import { useProduct } from '../../hook/useProduct.js';
 
 const currencySymbols = { INR: '₹', USD: '$', EUR: '€', GBP: '£', JPY: '¥' };
 
-const productStatus = (p) => (p.stock === 0 ? 'out' : p.status ? 'active' : 'draft');
+const productStatus = (p) =>
+  p.stock === 0 ? 'out' : p.status === 'active' ? 'active' : 'draft';
 
 const badge = {
-  active: { label: 'Active', cls: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400' },
+  active: {
+    label: 'Active',
+    cls: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400',
+  },
   draft: { label: 'Draft', cls: 'border-line bg-line/40 text-muted' },
-  out: { label: 'Out of Stock', cls: 'border-red-500/30 bg-red-500/10 text-red-400' },
+  out: {
+    label: 'Out of Stock',
+    cls: 'border-red-500/30 bg-red-500/10 text-red-400',
+  },
 };
 
-const thCls = 'p-4 font-display text-[11px] font-bold uppercase tracking-[0.12em] text-muted';
+const thCls =
+  'p-4 font-display text-[11px] font-bold uppercase tracking-[0.12em] text-muted';
 
 const StatusBadge = ({ status }) => {
   const b = badge[status];
@@ -39,7 +47,9 @@ const StatusBadge = ({ status }) => {
 
 const AllAdminProducts = () => {
   const { handleGetAdminProducts } = useProduct();
-  const { adminProducts, loading, errors } = useSelector((state) => state.product);
+  const { adminProducts, loading, errors } = useSelector(
+    (state) => state.product,
+  );
 
   useEffect(() => {
     handleGetAdminProducts();
@@ -92,7 +102,9 @@ const AllAdminProducts = () => {
               <p className="mb-2 font-display text-[11px] font-bold uppercase tracking-[0.12em] text-muted">
                 {label}
               </p>
-              <h3 className={`font-display text-4xl font-bold ${accent ? 'text-accent' : 'text-paper'}`}>
+              <h3
+                className={`font-display text-4xl font-bold ${accent ? 'text-accent' : 'text-paper'}`}
+              >
                 {value}
               </h3>
             </div>
@@ -113,7 +125,10 @@ const AllAdminProducts = () => {
             </div>
             <div className="hidden gap-4 md:flex">
               {[
-                { label: 'Category', opts: ["Men's", "Women's", 'Accessories'] },
+                {
+                  label: 'Category',
+                  opts: ["Men's", "Women's", 'Accessories'],
+                },
                 { label: 'Status', opts: ['Active', 'Draft', 'Out of Stock'] },
               ].map(({ label, opts }) => (
                 <div key={label} className="relative">
@@ -134,7 +149,11 @@ const AllAdminProducts = () => {
 
           {/* View toggle */}
           <div className="flex items-center gap-2 border border-line p-2">
-            <button type="button" aria-label="List view" className="bg-field p-1.5 text-paper">
+            <button
+              type="button"
+              aria-label="List view"
+              className="bg-field p-1.5 text-paper"
+            >
               <FiList className="h-5 w-5" />
             </button>
             <button
@@ -153,7 +172,11 @@ const AllAdminProducts = () => {
             <thead>
               <tr className="border-b border-line bg-panel">
                 <th className="w-12 p-4 text-center">
-                  <input type="checkbox" name="selectAll" className="stitch-checkbox" />
+                  <input
+                    type="checkbox"
+                    name="selectAll"
+                    className="stitch-checkbox"
+                  />
                 </th>
                 <th className={thCls}>Product</th>
                 <th className={thCls}>Category</th>
@@ -166,23 +189,35 @@ const AllAdminProducts = () => {
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center font-display text-xs uppercase tracking-[0.12em] text-muted">
+                  <td
+                    colSpan={7}
+                    className="p-8 text-center font-display text-xs uppercase tracking-[0.12em] text-muted"
+                  >
                     Loading products...
                   </td>
                 </tr>
               )}
               {!loading && errors && (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center font-display text-xs uppercase tracking-[0.12em] text-red-400">
+                  <td
+                    colSpan={7}
+                    className="p-8 text-center font-display text-xs uppercase tracking-[0.12em] text-red-400"
+                  >
                     {errors}
                   </td>
                 </tr>
               )}
               {!loading && !errors && adminProducts.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center font-display text-xs uppercase tracking-[0.12em] text-muted">
+                  <td
+                    colSpan={7}
+                    className="p-8 text-center font-display text-xs uppercase tracking-[0.12em] text-muted"
+                  >
                     No products yet.{' '}
-                    <Link to="/admin/products/new" className="text-accent underline underline-offset-4">
+                    <Link
+                      to="/admin/products/new"
+                      className="text-accent underline underline-offset-4"
+                    >
                       Add your first product
                     </Link>
                   </td>
@@ -192,14 +227,22 @@ const AllAdminProducts = () => {
                 adminProducts.map((p) => {
                   const status = productStatus(p);
                   const stockCls =
-                    status === 'out' ? 'text-red-400' : p.stock <= 5 ? 'text-accent' : 'text-muted';
+                    status === 'out'
+                      ? 'text-red-400'
+                      : p.stock <= 5
+                        ? 'text-accent'
+                        : 'text-muted';
                   return (
                     <tr
                       key={p._id}
                       className="border-b border-line last:border-0 transition-colors hover:bg-white/[0.02]"
                     >
                       <td className="p-4 text-center">
-                        <input type="checkbox" name={`selectProduct-${p._id}`} className="stitch-checkbox" />
+                        <input
+                          type="checkbox"
+                          name={`selectProduct-${p._id}`}
+                          className="stitch-checkbox"
+                        />
                       </td>
                       <td className="p-4">
                         <div className="flex items-center gap-4">
@@ -229,7 +272,9 @@ const AllAdminProducts = () => {
                         {currencySymbols[p.price?.currency] || ''}
                         {Number(p.price?.amount ?? 0).toFixed(2)}
                       </td>
-                      <td className={`p-4 font-display text-xs uppercase tracking-wide ${stockCls}`}>
+                      <td
+                        className={`p-4 font-display text-xs uppercase tracking-wide ${stockCls}`}
+                      >
                         {String(p.stock).padStart(2, '0')} Units
                       </td>
                       <td className="p-4">

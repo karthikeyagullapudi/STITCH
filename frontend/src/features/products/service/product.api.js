@@ -31,3 +31,12 @@ export const getsAllProducts = async () => {
     throw error.response?.data || { message: 'Failed to fetch products' };
   }
 };
+
+export const getProductById = async (productId) => {
+  try {
+    const response = await productApiInstance.get(`/product/${productId}`);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Failed to fetch product' };
+  }
+};

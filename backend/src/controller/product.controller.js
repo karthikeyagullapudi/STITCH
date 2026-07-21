@@ -67,7 +67,7 @@ export const createProduct = async (req, res) => {
       sizes,
       colorways,
       category,
-      collection, // client may send either key
+      collection,
       collectionName,
       vendor,
       tags,
@@ -192,6 +192,30 @@ export const getAllProducts = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Failed to fetch products',
+    });
+  }
+};
+
+export const getProductById = async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const product = await productModel.findById(productId).lean();
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: 'product not found',
+      });
+    }
+    return res.status(200).json({
+      success: true,
+      message: 'product fetched successfully',
+      product,
+    });
+  } catch (error) {
+    console.error('getProductById error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch product',
     });
   }
 };

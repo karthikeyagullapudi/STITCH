@@ -9,8 +9,8 @@ import {
   FiTrash2,
   FiX,
 } from 'react-icons/fi';
-import AdminLayout from '../components/AdminLayout.jsx';
-import { useProduct } from '../hook/useProduct.js';
+import AdminLayout from '../../components/AdminLayout.jsx';
+import { useProduct } from '../../hook/useProduct.js';
 
 const cardCls = 'border border-line bg-field p-6';
 const cardTitleCls =
@@ -49,6 +49,7 @@ const CreateProduct = () => {
     description: '',
     price: '',
     stock: '',
+    status: 'active',
   });
   const [images, setImages] = useState([]);
   const fileInputRef = useRef(null);
@@ -79,6 +80,7 @@ const CreateProduct = () => {
     formData.append('description', form.description);
     formData.append('price', form.price);
     formData.append('stock', form.stock || 0);
+    formData.append('status', form.status || 'active');
     images.forEach(({ file }) => formData.append('images', file));
 
     const result = await handleCreateProduct(formData);
@@ -424,11 +426,13 @@ const CreateProduct = () => {
                 <div className="relative mb-4">
                   <select
                     name="status"
+                    value={form.status}
+                    onChange={handleChange}
                     className={`${inputCls} appearance-none pr-16`}
                   >
-                    <option>ACTIVE</option>
-                    <option>DRAFT</option>
-                    <option>ARCHIVED</option>
+                    <option value="active">ACTIVE</option>
+                    <option value="draft">DRAFT</option>
+                    <option value="archived">ARCHIVED</option>
                   </select>
                   <div className="pointer-events-none absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-2">
                     <span className="h-2 w-2 rounded-full bg-emerald-500" />

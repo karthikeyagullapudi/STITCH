@@ -1,7 +1,13 @@
 import { useDispatch } from 'react-redux';
-import { createProducts, getAdminProducts } from '../service/product.api.js';
+import {
+  createProducts,
+  getAdminProducts,
+  getsAllProducts,
+  getProductById,
+} from '../service/product.api.js';
 import {
   setAdminProducts,
+  setAllProducts,
   setLoading,
   setError,
 } from '../state/products.slice.js';
@@ -62,5 +68,26 @@ export const useProduct = () => {
     }
   };
 
-  return { handleCreateProduct, handleGetAdminProducts };
+  const handleGetProductById = async (productId) => {
+    try {
+      dispatch(setLoading(true));
+      dispatch(setError(null));
+      const data = await getProductById(productId);
+      return data;
+    } catch (error) {
+      const errorMsg = error?.message || 'Failed to fetch product';
+      dispatch(setError(errorMsg));
+      console.log(error);
+      return null;
+    } finally {
+      dispatch(setLoading(false));
+    }
+  };
+
+  return {
+    handleCreateProduct,
+    handleGetAdminProducts,
+    handleGetAllProducts,
+    handleGetProductById,
+  };
 };

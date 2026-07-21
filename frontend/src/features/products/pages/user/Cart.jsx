@@ -1,12 +1,10 @@
-import { Link } from 'react-router';
-import { FiShoppingBag, FiChevronDown, FiTrash2, FiCreditCard, FiSmartphone, FiDollarSign } from 'react-icons/fi';
+import { FiChevronDown, FiTrash2, FiCreditCard, FiSmartphone, FiDollarSign } from 'react-icons/fi';
+import Header from '../../components/Header.jsx';
 
 /* ------------------------------------------------------------------ */
 /* Static STITCH cart / "Your Bag" page. Presentational only —        */
 /* wire up cart state, qty/size selects, remove & checkout as needed. */
 /* ------------------------------------------------------------------ */
-
-const navLinks = ['New', 'Men', 'Women', 'Accessories'];
 
 const cartItems = [
   { img: 'kimono', cat: 'Outerwear / Archive', name: 'Kimono Lu Xang', size: 'L', qty: 1, price: '$485.00', old: '$520.00' },
@@ -33,37 +31,7 @@ const pillCls =
 const Cart = () => {
   return (
     <div className="min-h-screen bg-ink font-body text-paper">
-      {/* Top nav */}
-      <header className="fixed top-0 z-50 w-full border-b border-line bg-ink/80 backdrop-blur-md">
-        <div className="mx-auto flex h-20 max-w-[1440px] items-center justify-between px-6">
-          <div className="flex items-center gap-10">
-            <Link to="/" className="font-display text-2xl font-bold uppercase tracking-tight text-paper">
-              STITCH
-            </Link>
-            <nav className="hidden gap-8 md:flex">
-              {navLinks.map((l) => (
-                <a
-                  key={l}
-                  href="#"
-                  className="font-display text-[11px] font-bold uppercase tracking-[0.12em] text-paper transition-colors hover:text-accent"
-                >
-                  {l}
-                </a>
-              ))}
-            </nav>
-          </div>
-          <button
-            type="button"
-            aria-label="Cart"
-            className="relative border-b-2 border-accent pb-1 text-accent transition-transform active:scale-95"
-          >
-            <FiShoppingBag className="h-6 w-6" />
-            <span className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-ink">
-              3
-            </span>
-          </button>
-        </div>
-      </header>
+      <Header />
 
       <main className="mx-auto max-w-[1440px] px-6 pb-16 pt-28 md:pt-32">
         {/* Breadcrumb + heading */}

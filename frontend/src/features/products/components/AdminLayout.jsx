@@ -19,6 +19,7 @@ import {
 const navItems = [
   { label: 'Dashboard', icon: FiGrid, to: '#' },
   { label: 'Products', icon: FiBox, to: '/admin/products' },
+  { label: 'Create', icon: FiBox, to: '/admin/products/new' },
   { label: 'Orders', icon: FiShoppingBag, to: '#' },
   { label: 'Customers', icon: FiUsers, to: '#' },
   { label: 'Analytics', icon: FiBarChart2, to: '#' },
@@ -30,7 +31,9 @@ export function AdminSidebar({ active = 'Products' }) {
     <aside className="fixed inset-y-0 left-0 z-50 flex w-60 flex-col border-r border-line bg-panel">
       {/* Logo */}
       <div className="flex h-20 items-center gap-2 px-6">
-        <span className="font-display text-2xl font-extrabold tracking-tight text-paper">STITCH</span>
+        <span className="font-display text-2xl font-extrabold tracking-tight text-paper">
+          STITCH
+        </span>
         <span className="rounded-[3px] border border-line px-1.5 py-0.5 font-display text-[10px] font-bold tracking-[0.2em] text-accent">
           ADMIN
         </span>
@@ -64,7 +67,9 @@ export function AdminSidebar({ active = 'Products' }) {
             KY
           </div>
           <div className="flex flex-col">
-            <span className="font-display text-xs font-semibold text-paper">Kento Y.</span>
+            <span className="font-display text-xs font-semibold text-paper">
+              Kento Y.
+            </span>
             <span className="text-[10px] text-muted">Admin Level 4</span>
           </div>
           <FiChevronDown className="ml-auto h-4 w-4 text-muted" />
