@@ -53,7 +53,7 @@ const ProductGallery = ({ images, title, collectionName }) => {
 
   if (!images || images.length === 0) {
     return (
-      <div className="aspect-[4/5] w-full bg-panel flex items-center justify-center border border-line">
+      <div className="aspect-[3/4] w-full bg-panel flex items-center justify-center border border-line">
         <p className="text-muted text-sm">No images available</p>
       </div>
     );
@@ -62,7 +62,7 @@ const ProductGallery = ({ images, title, collectionName }) => {
   return (
     <div className="space-y-6 max-w-[450px] mx-auto">
       {/* Constrained main image with hover magnifier */}
-      <div className="group relative aspect-[4/5] w-full overflow-hidden bg-panel border border-line">
+      <div className="group relative aspect-[3/4] w-full overflow-hidden bg-panel border border-line">
         <div
           className="relative w-full h-full overflow-hidden cursor-zoom-in"
           onMouseEnter={() => setIsZoomed(true)}

@@ -8,8 +8,6 @@ import {
   FiImage,
   FiTrash2,
   FiX,
-  FiPlus,
-  FiLayers,
 } from 'react-icons/fi';
 import AdminLayout from '../../components/AdminLayout.jsx';
 import { useProduct } from '../../hook/useProduct.js';
@@ -32,13 +30,14 @@ const Select = ({ children, ...props }) => (
   </div>
 );
 
-const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
-const CURRENCIES = ['INR', 'USD', 'EUR', 'GBP', 'JPY'];
-const currencySymbols = { INR: '₹', USD: '$', EUR: '€', GBP: '£', JPY: '¥' };
+const sizes = ['XS', 'S', 'M', 'L', 'XL'];
+const colorways = [
+  { name: 'Onyx', hex: '#000000', active: true },
+  { name: 'Olive', hex: '#2A2D2B', active: false },
+  { name: 'Wolf', hex: '#4A4A4A', active: false },
+];
 
 const MAX_IMAGES = 7;
-
-const variantKey = (size, colorName) => `${size || ''}__${colorName || ''}`;
 
 const CreateProduct = () => {
   const navigate = useNavigate();
@@ -48,37 +47,17 @@ const CreateProduct = () => {
   const [form, setForm] = useState({
     title: '',
     description: '',
-    slug: '',
     price: '',
-    compareAtPrice: '',
-    costPerItem: '',
-    currency: 'INR',
-    chargeTax: false,
-    sku: '',
     stock: '',
-    trackQuantity: true,
-    gender: 'men',
-    category: '',
-    collection: '',
-    vendor: '',
     status: 'active',
   });
   const [images, setImages] = useState([]);
-  const [tags, setTags] = useState([]);
-  const [tagInput, setTagInput] = useState('');
-  const [selectedSizes, setSelectedSizes] = useState([]);
-  const [colorways, setColorways] = useState([]); // [{ name, hex }]
-  const [variants, setVariants] = useState([]); // [{ key, size, colorway, sku, stock, price }]
-  const [formError, setFormError] = useState('');
-
   const fileInputRef = useRef(null);
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setForm({ ...form, [name]: type === 'checkbox' ? checked : value });
+    setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  /* ---- Media ---- */
   const handleImageSelect = (e) => {
     const files = Array.from(e.target.files || []);
     const next = [
@@ -94,129 +73,21 @@ const CreateProduct = () => {
     setImages(images.filter((_, i) => i !== index));
   };
 
-  /* ---- Tags ---- */
-  const addTag = (e) => {
-    if (e.key !== 'Enter') return;
-    e.preventDefault();
-    const t = tagInput.trim();
-    if (t && !tags.includes(t)) setTags([...tags, t]);
-    setTagInput('');
-  };
-  const removeTag = (t) => setTags(tags.filter((x) => x !== t));
-
-  /* ---- Sizes ---- */
-  const toggleSize = (s) =>
-    setSelectedSizes((prev) =>
-      prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s],
-    );
-
-  /* ---- Colorways ---- */
-  const addColorway = () =>
-    setColorways((cs) => [...cs, { name: '', hex: '#4A4A4A' }]);
-  const updateColorway = (i, field, val) =>
-    setColorways((cs) =>
-      cs.map((c, idx) => (idx === i ? { ...c, [field]: val } : c)),
-    );
-  const removeColorway = (i) =>
-    setColorways((cs) => cs.filter((_, idx) => idx !== i));
-
-  /* ---- Variant matrix ---- */
-  const generateVariants = () => {
-    const orderedSizes = SIZES.filter((s) => selectedSizes.includes(s));
-    const validColors = colorways.filter((c) => c.name.trim());
-    const sizeList = orderedSizes.length ? orderedSizes : [null];
-    const colorList = validColors.length ? validColors : [null];
-
-    // Preserve any stock/price/sku already entered, keyed by size+colour.
-    const prev = new Map(variants.map((v) => [v.key, v]));
-    const next = [];
-    for (const size of sizeList) {
-      for (const color of colorList) {
-        if (!size && !color) continue; // nothing varies — no matrix to build
-        const key = variantKey(size, color?.name);
-        next.push(
-          prev.get(key) || {
-            key,
-            size: size || '',
-            colorway: color ? { name: color.name, hex: color.hex } : null,
-            sku: '',
-            stock: '',
-            price: '',
-          },
-        );
-      }
-    }
-    setVariants(next);
-  };
-
-  const updateVariant = (key, field, val) =>
-    setVariants((vs) =>
-      vs.map((v) => (v.key === key ? { ...v, [field]: val } : v)),
-    );
-  const removeVariant = (key) =>
-    setVariants((vs) => vs.filter((v) => v.key !== key));
-
-  /* ---- Submit ---- */
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setFormError('');
-
-    if (images.length === 0) {
-      setFormError('At least one product image is required.');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
-
     const formData = new FormData();
     formData.append('title', form.title);
     formData.append('description', form.description);
-    if (form.slug) formData.append('slug', form.slug);
     formData.append('price', form.price);
-    formData.append('currency', form.currency);
-    if (form.compareAtPrice)
-      formData.append('compareAtPrice', form.compareAtPrice);
-    if (form.costPerItem) formData.append('costPerItem', form.costPerItem);
-    formData.append('chargeTax', form.chargeTax);
-    if (form.sku) formData.append('sku', form.sku);
     formData.append('stock', form.stock || 0);
-    formData.append('trackQuantity', form.trackQuantity);
-    formData.append('gender', form.gender);
-    if (form.category) formData.append('category', form.category);
-    if (form.collection) formData.append('collection', form.collection);
-    if (form.vendor) formData.append('vendor', form.vendor);
     formData.append('status', form.status || 'active');
-    formData.append('tags', JSON.stringify(tags));
-    formData.append(
-      'colorways',
-      JSON.stringify(colorways.filter((c) => c.name.trim())),
-    );
-
-    const variantsPayload = variants.map((v) => ({
-      size: v.size || undefined,
-      colorway: v.colorway || undefined,
-      sku: v.sku?.trim() || undefined,
-      stock: Number(v.stock) || 0,
-      price: v.price
-        ? { amount: Number(v.price), currency: form.currency }
-        : undefined,
-    }));
-    formData.append('variants', JSON.stringify(variantsPayload));
-
     images.forEach(({ file }) => formData.append('images', file));
 
     const result = await handleCreateProduct(formData);
     if (result.success) {
       navigate('/admin/products');
-    } else {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
-
-  const totalVariantStock = variants.reduce(
-    (sum, v) => sum + (Number(v.stock) || 0),
-    0,
-  );
-  const symbol = currencySymbols[form.currency] || '₹';
 
   return (
     <AdminLayout active="Products">
@@ -243,7 +114,6 @@ const CreateProduct = () => {
             </button>
             <button
               type="button"
-              onClick={() => setForm({ ...form, status: 'draft' })}
               className="px-2 py-2 font-display text-[11px] font-bold uppercase tracking-[0.12em] text-muted transition-colors hover:text-paper"
             >
               Save as Draft
@@ -270,9 +140,9 @@ const CreateProduct = () => {
             </p>
           </div>
 
-          {(formError || errors) && (
+          {errors && (
             <div className="mb-6 border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
-              {formError || errors}
+              {errors}
             </div>
           )}
 
@@ -316,11 +186,6 @@ const CreateProduct = () => {
                         alt={file.name}
                         className="h-full w-full object-cover"
                       />
-                      {i === 0 && (
-                        <span className="absolute left-1.5 top-1.5 bg-accent px-1.5 py-0.5 font-display text-[8px] font-bold uppercase tracking-[0.16em] text-ink">
-                          Cover
-                        </span>
-                      )}
                       <div className="absolute inset-0 flex items-center justify-center gap-2 bg-accent/20 opacity-0 transition-opacity group-hover:opacity-100">
                         <button
                           type="button"
@@ -384,15 +249,10 @@ const CreateProduct = () => {
                       <input
                         type="text"
                         name="slug"
-                        value={form.slug}
-                        onChange={handleChange}
                         placeholder="luna-01-modular-parka"
                         className={`${inputCls} flex-1`}
                       />
                     </div>
-                    <p className="mt-1 text-[10px] uppercase tracking-wide text-faint">
-                      Leave blank to auto-generate from the product name.
-                    </p>
                   </div>
                 </div>
               </section>
@@ -402,8 +262,8 @@ const CreateProduct = () => {
                 <section className={cardCls}>
                   <h2 className={cardTitleCls}>Pricing</h2>
                   <div className="mb-4 grid grid-cols-2 gap-4">
-                    <div>
-                      <label className={labelCls}>Price</label>
+                    <div className="col-span-2">
+                      <label className={labelCls}>Price (INR)</label>
                       <input
                         type="number"
                         name="price"
@@ -417,28 +277,10 @@ const CreateProduct = () => {
                       />
                     </div>
                     <div>
-                      <label className={labelCls}>Currency</label>
-                      <Select
-                        name="currency"
-                        value={form.currency}
-                        onChange={handleChange}
-                      >
-                        {CURRENCIES.map((c) => (
-                          <option key={c} value={c}>
-                            {c}
-                          </option>
-                        ))}
-                      </Select>
-                    </div>
-                    <div>
                       <label className={labelCls}>Compare At</label>
                       <input
                         type="number"
                         name="compareAtPrice"
-                        value={form.compareAtPrice}
-                        onChange={handleChange}
-                        min="0"
-                        step="0.01"
                         placeholder="0.00"
                         className={inputCls}
                       />
@@ -448,10 +290,6 @@ const CreateProduct = () => {
                       <input
                         type="number"
                         name="costPerItem"
-                        value={form.costPerItem}
-                        onChange={handleChange}
-                        min="0"
-                        step="0.01"
                         placeholder="0.00"
                         className={inputCls}
                       />
@@ -461,8 +299,6 @@ const CreateProduct = () => {
                     <input
                       type="checkbox"
                       name="chargeTax"
-                      checked={form.chargeTax}
-                      onChange={handleChange}
                       className="stitch-checkbox"
                     />
                     <span className="text-xs uppercase tracking-wide text-muted">
@@ -481,8 +317,6 @@ const CreateProduct = () => {
                       <input
                         type="text"
                         name="sku"
-                        value={form.sku}
-                        onChange={handleChange}
                         placeholder="STCH-LUNA-01-BLK"
                         className={inputCls}
                       />
@@ -498,25 +332,19 @@ const CreateProduct = () => {
                         placeholder="0"
                         className={inputCls}
                       />
-                      {variants.length > 0 && (
-                        <p className="mt-1 text-[10px] uppercase tracking-wide text-faint">
-                          Base stock · variants add {totalVariantStock} units
-                          across {variants.length} SKUs.
-                        </p>
-                      )}
                     </div>
-                    <label className="flex items-center justify-between border-t border-line/60 pt-3 cursor-pointer select-none">
+                    <div className="flex items-center justify-between border-t border-line/60 pt-3">
                       <span className="text-xs uppercase tracking-wide text-muted">
                         Track quantity
                       </span>
-                      <input
-                        type="checkbox"
-                        name="trackQuantity"
-                        checked={form.trackQuantity}
-                        onChange={handleChange}
-                        className="stitch-checkbox"
-                      />
-                    </label>
+                      <button
+                        type="button"
+                        aria-label="Toggle track quantity"
+                        className="relative h-5 w-10 rounded-full bg-accent p-1"
+                      >
+                        <span className="block h-3 w-3 translate-x-5 rounded-full bg-ink" />
+                      </button>
+                    </div>
                   </div>
                 </section>
               </div>
@@ -529,216 +357,63 @@ const CreateProduct = () => {
                   </h2>
                   <button
                     type="button"
-                    onClick={generateVariants}
-                    className="flex items-center gap-1.5 border border-accent/30 px-3 py-1 font-display text-[10px] font-bold uppercase tracking-[0.12em] text-accent transition-colors hover:bg-accent/10"
+                    className="border border-accent/20 px-3 py-1 font-display text-[10px] font-bold uppercase tracking-[0.12em] text-accent transition-colors hover:bg-accent/10"
                   >
-                    <FiLayers className="h-3 w-3" />
-                    Generate Matrix
+                    Add Option
                   </button>
                 </div>
-
                 <div className="space-y-6">
-                  {/* Size chart */}
                   <div>
                     <label className={labelCls}>Size Chart</label>
                     <div className="flex flex-wrap gap-2">
-                      {SIZES.map((s) => {
-                        const active = selectedSizes.includes(s);
-                        return (
+                      {sizes.map((s, i) => (
+                        <button
+                          key={s}
+                          type="button"
+                          className={`flex h-12 w-12 items-center justify-center font-display text-xs font-bold ${
+                            i === 0
+                              ? 'border border-accent bg-accent/10 text-accent'
+                              : 'border border-line text-muted transition-colors hover:border-paper'
+                          }`}
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className={labelCls}>Colorways</label>
+                    <div className="flex flex-wrap gap-4">
+                      {colorways.map(({ name, hex, active }) => (
+                        <div
+                          key={name}
+                          className="flex flex-col items-center gap-2"
+                        >
                           <button
-                            key={s}
                             type="button"
-                            onClick={() => toggleSize(s)}
-                            className={`flex h-12 w-12 items-center justify-center font-display text-xs font-bold transition-colors ${
+                            aria-label={name}
+                            style={{ backgroundColor: hex }}
+                            className={`h-10 w-10 rounded-full ${
                               active
-                                ? 'border border-accent bg-accent/10 text-accent'
-                                : 'border border-line text-muted hover:border-paper'
+                                ? 'border-2 border-accent p-0.5'
+                                : 'border border-line transition-colors hover:border-paper'
                             }`}
                           >
-                            {s}
+                            {active && (
+                              <span className="block h-full w-full rounded-full border border-line" />
+                            )}
                           </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Colorways */}
-                  <div>
-                    <div className="mb-2 flex items-center justify-between">
-                      <label className="font-display text-[11px] font-bold uppercase tracking-[0.12em] text-muted">
-                        Colorways
-                      </label>
-                      <button
-                        type="button"
-                        onClick={addColorway}
-                        className="flex items-center gap-1 font-display text-[10px] font-bold uppercase tracking-[0.12em] text-accent transition-colors hover:text-paper"
-                      >
-                        <FiPlus className="h-3 w-3" />
-                        Add colorway
-                      </button>
-                    </div>
-                    {colorways.length === 0 ? (
-                      <p className="border border-dashed border-line px-4 py-3 text-[11px] uppercase tracking-wide text-faint">
-                        No colorways yet — add one to build coloured variants.
-                      </p>
-                    ) : (
-                      <div className="space-y-2">
-                        {colorways.map((c, i) => (
-                          <div
-                            key={i}
-                            className="flex items-center gap-3 border border-line bg-panel p-2"
+                          <span
+                            className={`font-display text-[10px] font-bold uppercase tracking-wide ${
+                              active ? 'text-accent' : 'text-muted'
+                            }`}
                           >
-                            <label className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full border border-line">
-                              <span
-                                className="block h-full w-full"
-                                style={{ backgroundColor: c.hex }}
-                              />
-                              <input
-                                type="color"
-                                value={c.hex}
-                                onChange={(e) =>
-                                  updateColorway(i, 'hex', e.target.value)
-                                }
-                                className="absolute inset-0 cursor-pointer opacity-0"
-                                aria-label="Colour picker"
-                              />
-                            </label>
-                            <input
-                              type="text"
-                              value={c.name}
-                              onChange={(e) =>
-                                updateColorway(i, 'name', e.target.value)
-                              }
-                              placeholder="Colour name (e.g. Onyx)"
-                              className="flex-1 bg-transparent px-1 text-sm text-paper outline-none placeholder:text-faint"
-                            />
-                            <span className="font-mono text-[11px] uppercase text-muted">
-                              {c.hex}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => removeColorway(i)}
-                              aria-label="Remove colorway"
-                              className="text-muted transition-colors hover:text-red-400"
-                            >
-                              <FiX className="h-4 w-4" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Generated variant matrix */}
-                  {variants.length > 0 && (
-                    <div>
-                      <label className={labelCls}>
-                        Variant Matrix · {variants.length} SKUs
-                      </label>
-                      <div className="overflow-x-auto border border-line">
-                        <table className="w-full min-w-[520px] text-left">
-                          <thead>
-                            <tr className="border-b border-line bg-panel font-display text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
-                              <th className="px-3 py-2">Variant</th>
-                              <th className="px-3 py-2">SKU</th>
-                              <th className="w-24 px-3 py-2">Stock</th>
-                              <th className="w-32 px-3 py-2">Price</th>
-                              <th className="w-10 px-3 py-2" />
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {variants.map((v) => (
-                              <tr
-                                key={v.key}
-                                className="border-b border-line/60 last:border-0"
-                              >
-                                <td className="px-3 py-2">
-                                  <div className="flex items-center gap-2">
-                                    {v.colorway && (
-                                      <span
-                                        className="h-4 w-4 shrink-0 rounded-full border border-line"
-                                        style={{
-                                          backgroundColor: v.colorway.hex,
-                                        }}
-                                        title={v.colorway.name}
-                                      />
-                                    )}
-                                    <span className="font-display text-xs font-bold uppercase tracking-wide text-paper">
-                                      {[v.size, v.colorway?.name]
-                                        .filter(Boolean)
-                                        .join(' · ')}
-                                    </span>
-                                  </div>
-                                </td>
-                                <td className="px-3 py-2">
-                                  <input
-                                    type="text"
-                                    value={v.sku}
-                                    onChange={(e) =>
-                                      updateVariant(v.key, 'sku', e.target.value)
-                                    }
-                                    placeholder="Auto"
-                                    className="w-full border border-line bg-panel px-2 py-1.5 text-xs text-paper outline-none focus:border-accent placeholder:text-faint"
-                                  />
-                                </td>
-                                <td className="px-3 py-2">
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    value={v.stock}
-                                    onChange={(e) =>
-                                      updateVariant(
-                                        v.key,
-                                        'stock',
-                                        e.target.value,
-                                      )
-                                    }
-                                    placeholder="0"
-                                    className="w-full border border-line bg-panel px-2 py-1.5 text-xs text-paper outline-none focus:border-accent placeholder:text-faint"
-                                  />
-                                </td>
-                                <td className="px-3 py-2">
-                                  <div className="flex items-center border border-line bg-panel focus-within:border-accent">
-                                    <span className="pl-2 text-xs text-muted">
-                                      {symbol}
-                                    </span>
-                                    <input
-                                      type="number"
-                                      min="0"
-                                      step="0.01"
-                                      value={v.price}
-                                      onChange={(e) =>
-                                        updateVariant(
-                                          v.key,
-                                          'price',
-                                          e.target.value,
-                                        )
-                                      }
-                                      placeholder="Base"
-                                      className="w-full bg-transparent px-2 py-1.5 text-xs text-paper outline-none placeholder:text-faint"
-                                    />
-                                  </div>
-                                </td>
-                                <td className="px-3 py-2 text-center">
-                                  <button
-                                    type="button"
-                                    onClick={() => removeVariant(v.key)}
-                                    aria-label="Remove variant"
-                                    className="text-muted transition-colors hover:text-red-400"
-                                  >
-                                    <FiTrash2 className="h-3.5 w-3.5" />
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                      <p className="mt-2 text-[10px] uppercase tracking-wide text-faint">
-                        Leave price blank to inherit the base product price.
-                      </p>
+                            {name}
+                          </span>
+                        </div>
+                      ))}
                     </div>
-                  )}
+                  </div>
                 </div>
               </section>
             </div>
@@ -760,15 +435,7 @@ const CreateProduct = () => {
                     <option value="archived">ARCHIVED</option>
                   </select>
                   <div className="pointer-events-none absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-2">
-                    <span
-                      className={`h-2 w-2 rounded-full ${
-                        form.status === 'active'
-                          ? 'bg-emerald-500'
-                          : form.status === 'draft'
-                            ? 'bg-amber-500'
-                            : 'bg-line'
-                      }`}
-                    />
+                    <span className="h-2 w-2 rounded-full bg-emerald-500" />
                     <FiChevronDown className="h-4 w-4 text-muted" />
                   </div>
                 </div>
@@ -783,41 +450,19 @@ const CreateProduct = () => {
                 <h2 className={cardTitleCls}>Organization</h2>
                 <div className="space-y-4">
                   <div>
-                    <label className={labelCls}>Gender</label>
-                    <Select
-                      name="gender"
-                      value={form.gender}
-                      onChange={handleChange}
-                    >
-                      <option value="men">MEN</option>
-                      <option value="women">WOMEN</option>
-                      <option value="unisex">UNISEX</option>
+                    <label className={labelCls}>Category</label>
+                    <Select name="category" defaultValue="MEN'S OUTERWEAR">
+                      <option>MEN'S OUTERWEAR</option>
+                      <option>WOMEN'S ACCESSORIES</option>
+                      <option>UNISEX CARGO</option>
                     </Select>
                   </div>
                   <div>
-                    <label className={labelCls}>Category</label>
-                    <input
-                      type="text"
-                      name="category"
-                      value={form.category}
-                      onChange={handleChange}
-                      placeholder="e.g. Outerwear"
-                      className={inputCls}
-                    />
-                  </div>
-                  <div>
                     <label className={labelCls}>Collection</label>
-                    <Select
-                      name="collection"
-                      value={form.collection}
-                      onChange={handleChange}
-                    >
-                      <option value="">Select collection</option>
-                      <option value="SS24 LUNACORE">SS24 LUNACORE</option>
-                      <option value="FW23 STRUCTURALISM">
-                        FW23 STRUCTURALISM
-                      </option>
-                      <option value="CORE ESSENTIALS">CORE ESSENTIALS</option>
+                    <Select name="collection" defaultValue="SS24 LUNACORE">
+                      <option>SS24 LUNACORE</option>
+                      <option>FW23 STRUCTURALISM</option>
+                      <option>CORE ESSENTIALS</option>
                     </Select>
                   </div>
                   <div>
@@ -825,8 +470,6 @@ const CreateProduct = () => {
                     <input
                       type="text"
                       name="vendor"
-                      value={form.vendor}
-                      onChange={handleChange}
                       placeholder="STITCH FACTORY-01"
                       className={inputCls}
                     />
@@ -834,7 +477,7 @@ const CreateProduct = () => {
                   <div>
                     <label className={labelCls}>Tags</label>
                     <div className="flex min-h-[80px] flex-wrap content-start gap-2 border border-line bg-panel p-2">
-                      {tags.map((tag) => (
+                      {['Waterproof', 'Cordura'].map((tag) => (
                         <span
                           key={tag}
                           className="flex items-center gap-1.5 bg-line px-2 py-1 font-display text-[10px] font-bold uppercase tracking-wide text-paper"
@@ -842,7 +485,6 @@ const CreateProduct = () => {
                           {tag}
                           <button
                             type="button"
-                            onClick={() => removeTag(tag)}
                             className="text-muted transition-colors hover:text-accent"
                           >
                             <FiX className="h-3 w-3" />
@@ -851,16 +493,11 @@ const CreateProduct = () => {
                       ))}
                       <input
                         type="text"
-                        value={tagInput}
-                        onChange={(e) => setTagInput(e.target.value)}
-                        onKeyDown={addTag}
+                        name="tagInput"
                         placeholder="Add..."
-                        className="w-20 grow bg-transparent p-1 font-display text-[10px] uppercase tracking-wide text-paper outline-none placeholder:text-faint"
+                        className="w-20 bg-transparent p-1 font-display text-[10px] uppercase tracking-wide text-paper outline-none placeholder:text-faint"
                       />
                     </div>
-                    <p className="mt-1 text-[10px] uppercase tracking-wide text-faint">
-                      Press Enter to add a tag.
-                    </p>
                   </div>
                 </div>
               </section>
@@ -870,49 +507,38 @@ const CreateProduct = () => {
                 <h2 className={cardTitleCls}>Storefront Preview</h2>
                 <div className="border border-line bg-ink p-4">
                   <div className="relative mb-4 aspect-[3/4] overflow-hidden bg-panel">
-                    {images[0] ? (
-                      <img
-                        src={images[0].preview}
-                        alt="Store preview"
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center">
-                        <FiImage className="h-8 w-8 text-line" />
-                      </div>
-                    )}
-                    {form.status === 'active' && (
-                      <span className="absolute left-2 top-2 bg-accent px-1.5 py-0.5 font-display text-[8px] font-bold uppercase tracking-[0.2em] text-ink">
-                        New
-                      </span>
-                    )}
+                    <img
+                      src="/images/auth-model.jpg"
+                      alt="Store preview"
+                      className="h-full w-full object-cover"
+                    />
+                    <span className="absolute left-2 top-2 bg-accent px-1.5 py-0.5 font-display text-[8px] font-bold uppercase tracking-[0.2em] text-ink">
+                      New
+                    </span>
                   </div>
                   <div className="space-y-1">
                     <p className="font-display text-[9px] font-bold uppercase tracking-[0.2em] text-accent">
-                      {form.collection || 'SS24 Lunacore'}
+                      SS24 Lunacore
                     </p>
                     <p className="truncate font-display text-sm font-bold uppercase text-paper">
-                      {form.title || 'Product name'}
+                      LUNA-01 Modular Parka
                     </p>
-                    <p className="font-display text-sm text-muted">
-                      {form.price ? `${symbol}${form.price}` : `${symbol}0.00`}
-                    </p>
+                    <p className="font-display text-sm text-muted">$485.00</p>
                   </div>
-                  {colorways.filter((c) => c.name.trim()).length > 0 && (
-                    <div className="mt-4 flex gap-1.5">
-                      {colorways
-                        .filter((c) => c.name.trim())
-                        .slice(0, 5)
-                        .map((c, i) => (
-                          <span
-                            key={i}
-                            className="h-2 w-2 rounded-full border border-line"
-                            style={{ backgroundColor: c.hex }}
-                          />
-                        ))}
-                    </div>
-                  )}
+                  <div className="mt-4 flex gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-paper" />
+                    <span className="h-2 w-2 rounded-full border border-line bg-line" />
+                    <span className="h-2 w-2 rounded-full border border-line bg-line" />
+                  </div>
                 </div>
+                <p className="mt-4 text-center">
+                  <a
+                    href="#"
+                    className="text-[10px] uppercase tracking-wide text-muted underline underline-offset-4 transition-colors hover:text-accent"
+                  >
+                    View Live Store Page
+                  </a>
+                </p>
               </section>
             </div>
           </div>

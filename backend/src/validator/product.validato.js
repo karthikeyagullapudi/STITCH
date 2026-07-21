@@ -1,10 +1,5 @@
 import { body, validationResult } from 'express-validator';
-import {
-  PRODUCT_STATUS,
-  CURRENCIES,
-  GENDERS,
-  SIZES,
-} from '../model/product.model.js';
+import { PRODUCT_STATUS, CURRENCIES } from '../model/product.model.js';
 
 const validate = (req, res, next) => {
   const errors = validationResult(req);
@@ -62,38 +57,7 @@ export const createProductValidator = [
     .isInt({ min: 0 })
     .withMessage('Stock must be a non-negative integer'),
 
-  /* ---- Variants ---- */
-  body('variants')
-    .optional({ values: 'falsy' })
-    .custom((value) => {
-      let list;
-      try {
-        list = typeof value === 'string' ? JSON.parse(value) : value;
-      } catch {
-        throw new Error('Variants must be valid JSON');
-      }
-      if (!Array.isArray(list)) {
-        throw new Error('Variants must be an array');
-      }
-      for (const v of list) {
-        if (v?.size && !SIZES.includes(String(v.size).toUpperCase())) {
-          throw new Error(`Variant size must be one of: ${SIZES.join(', ')}`);
-        }
-        if (v?.stock != null && v.stock !== '' && Number(v.stock) < 0) {
-          throw new Error('Variant stock must be non-negative');
-        }
-      }
-      return true;
-    }),
-
   /* ---- Organization ---- */
-  body('gender')
-    .trim()
-    .notEmpty()
-    .withMessage('Gender is required')
-    .isIn(GENDERS)
-    .withMessage(`Gender must be one of: ${GENDERS.join(', ')}`),
-
   body('category').optional({ values: 'falsy' }).isString(),
   body('collection').optional({ values: 'falsy' }).isString(),
   body('collectionName').optional({ values: 'falsy' }).isString(),

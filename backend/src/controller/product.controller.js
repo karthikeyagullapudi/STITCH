@@ -39,43 +39,6 @@ const toNumberOrNull = (value) => {
   return Number.isNaN(n) ? null : n;
 };
 
-// Normalise the variant matrix (posted as a JSON string) into entries that
-// match variantSchema, coercing numbers and dropping empty dimensions.
-const parseVariants = (value, defaultCurrency = 'INR') =>
-  parseList(value)
-    .filter((v) => v && typeof v === 'object')
-    .map((v) => {
-      const variant = { stock: toNumberOrNull(v.stock) ?? 0 };
-      if (v.size) variant.size = String(v.size).trim().toUpperCase();
-      if (v.sku) variant.sku = String(v.sku).trim();
-      if (v.colorway?.name && v.colorway?.hex) {
-        variant.colorway = {
-          name: String(v.colorway.name).trim(),
-          hex: String(v.colorway.hex).trim(),
-        };
-      }
-      if (v.images) {
-        variant.images = parseList(v.images).map((img) => {
-          if (img && typeof img === 'object') {
-            return {
-              url: img.url,
-              fileId: img.fileId,
-              alt: img.alt,
-            };
-          }
-          return { url: String(img), alt: '' };
-        });
-      }
-      const amount = toNumberOrNull(v.price?.amount ?? v.price);
-      if (amount != null) {
-        variant.price = {
-          amount,
-          currency: v.price?.currency || defaultCurrency,
-        };
-      }
-      return variant;
-    });
-
 // Keep slugs unique without failing the request on a collision.
 const buildUniqueSlug = async (base) => {
   const root = slugify(base) || `product-${Date.now().toString(36)}`;
@@ -101,9 +64,8 @@ export const createProduct = async (req, res) => {
       sku,
       stock,
       trackQuantity,
-      variants,
+      sizes,
       colorways,
-      gender,
       category,
       collection,
       collectionName,
@@ -150,9 +112,8 @@ export const createProduct = async (req, res) => {
       sku: sku ? String(sku).trim() : undefined,
       stock: toNumberOrNull(stock) ?? 0,
       trackQuantity: toBool(trackQuantity, true),
-      variants: parseVariants(variants, currency || 'INR'),
+      sizes: parseList(sizes),
       colorways: parseList(colorways),
-      gender,
       category,
       collectionName: collectionName || collection,
       vendor,
