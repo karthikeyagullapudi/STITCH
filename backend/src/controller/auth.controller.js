@@ -10,7 +10,7 @@ const sendTokenResponse = async (user, res, message) => {
   res.cookie('token', token, {
     httpOnly: true,
     secure: false,
-    sameSite: 'strict',
+    sameSite: 'lax',
     maxAge: 24 * 60 * 60 * 1000,
   });
 
@@ -103,7 +103,7 @@ export const googleAuthCallBack = async (req, res) => {
 
     if (!email) {
       return res.redirect(
-        `http://localhost:5173/login?error=google_auth_failed`,
+        `${Config.CLIENT_URL}/login?error=google_auth_failed`,
       );
     }
 
@@ -124,13 +124,13 @@ export const googleAuthCallBack = async (req, res) => {
     res.cookie('token', token, {
       httpOnly: true,
       secure: false,
-      sameSite: 'strict',
+      sameSite: 'lax',
       maxAge: 24 * 60 * 60 * 1000,
     });
 
-    res.redirect(`http://localhost:5173/`);
+    res.redirect(`${Config.CLIENT_URL}/`);
   } catch (error) {
     console.error('Google Auth Error:', error);
-    res.redirect(`http://localhost:5173/login?error=google_auth_failed`);
+    res.redirect(`${Config.CLIENT_URL}/login?error=google_auth_failed`);
   }
 };

@@ -30,6 +30,22 @@ const colorwaySchema = new mongoose.Schema(
   { _id: false },
 );
 
+const priceSchema = new mongoose.Schema(
+  {
+    amount: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+    currency: {
+      type: String,
+      enum: CURRENCIES,
+      default: 'INR',
+    },
+  },
+  { _id: false },
+);
+
 const variantSchema = new mongoose.Schema(
   {
     size: {
@@ -39,6 +55,7 @@ const variantSchema = new mongoose.Schema(
     },
     colorway: {
       type: colorwaySchema,
+      default: undefined,
     },
     sku: {
       type: String,
@@ -51,15 +68,8 @@ const variantSchema = new mongoose.Schema(
       min: 0,
     },
     price: {
-      amount: {
-        type: Number,
-        min: 0,
-      },
-      currency: {
-        type: String,
-        enum: CURRENCIES,
-        default: 'INR',
-      },
+      type: priceSchema,
+      default: undefined,
     },
     images: {
       type: [imageSchema],
@@ -106,16 +116,8 @@ const productSchema = new mongoose.Schema(
 
     /* ---- Pricing ---- */
     price: {
-      amount: {
-        type: Number,
-        required: true,
-        min: 0,
-      },
-      currency: {
-        type: String,
-        enum: CURRENCIES,
-        default: 'INR',
-      },
+      type: priceSchema,
+      required: true,
     },
     compareAtPrice: {
       type: Number,
