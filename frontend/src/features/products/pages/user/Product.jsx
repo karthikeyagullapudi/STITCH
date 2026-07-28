@@ -16,12 +16,16 @@ const Product = () => {
   const { handleGetProductById, handleGetAllProducts } = useProduct();
   const { allProducts, isLoading } = useSelector((state) => state.product);
   const [product, setProduct] = useState(null);
+  const [selectedVariant, setSelectedVariant] = useState(null);
 
   const fetchProductData = async () => {
     try {
       const response = await handleGetProductById(productId);
       if (response && response.product) {
         setProduct(response.product);
+        if (response.product.variants && response.product.variants.length > 0) {
+          setSelectedVariant(response.product.variants[0]);
+        }
       }
     } catch (error) {
       console.log(error);
@@ -39,6 +43,11 @@ const Product = () => {
   const relatedProducts = allProducts
     .filter((p) => p._id !== productId)
     .slice(0, 4);
+
+  const displayImages =
+    selectedVariant && selectedVariant.images && selectedVariant.images.length > 0
+      ? selectedVariant.images
+      : product?.images;
 
   if (isLoading && !product) {
     return (
@@ -89,7 +98,7 @@ const Product = () => {
           {/* Gallery Component */}
           <div className="lg:col-span-6">
             <ProductGallery
-              images={product.images}
+              images={displayImages}
               title={product.title}
               collectionName={product.collectionName}
             />
@@ -97,7 +106,11 @@ const Product = () => {
 
           {/* Info Component */}
           <div className="lg:col-span-6">
-            <ProductInfo product={product} />
+            <ProductInfo
+              product={product}
+              selectedVariant={selectedVariant}
+              onSelectVariant={setSelectedVariant}
+            />
           </div>
         </div>
 

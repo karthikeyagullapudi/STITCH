@@ -38,6 +38,7 @@ const colorways = [
 ];
 
 const MAX_IMAGES = 7;
+const MAX_VARIANT_IMAGES = 5;
 
 const CreateProduct = () => {
   const navigate = useNavigate();
@@ -50,12 +51,111 @@ const CreateProduct = () => {
     price: '',
     stock: '',
     status: 'active',
+    gender: 'unisex',
+    category: "MEN'S OUTERWEAR",
+    collection: 'SS24 LUNACORE',
+    vendor: 'STITCH FACTORY-01',
+    sku: '',
   });
+  const [tags, setTags] = useState(['Waterproof', 'Cordura']);
+  const [tagInput, setTagInput] = useState('');
   const [images, setImages] = useState([]);
   const fileInputRef = useRef(null);
 
+  // Variant Builder State
+  const [variants, setVariants] = useState([]);
+  const [newVariant, setNewVariant] = useState({
+    size: 'M',
+    colorName: 'Onyx',
+    colorHex: '#000000',
+    sku: '',
+    stock: '',
+    price: '',
+    images: [],
+  });
+  const variantFileInputRef = useRef(null);
+
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleAddTag = (e) => {
+    if (e.key === 'Enter' && tagInput.trim()) {
+      e.preventDefault();
+      if (!tags.includes(tagInput.trim())) {
+        setTags([...tags, tagInput.trim()]);
+      }
+      setTagInput('');
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove) => {
+    setTags(tags.filter((t) => t !== tagToRemove));
+  };
+
+  const handleNewVariantChange = (e) => {
+    setNewVariant({ ...newVariant, [e.target.name]: e.target.value });
+  };
+
+  const handleVariantImageSelect = (e) => {
+    const files = Array.from(e.target.files || []);
+    setNewVariant((prev) => ({
+      ...prev,
+      images: [
+        ...prev.images,
+        ...files.map((file) => ({ file, preview: URL.createObjectURL(file) })),
+      ].slice(0, MAX_VARIANT_IMAGES),
+    }));
+    e.target.value = '';
+  };
+
+  const removeVariantImage = (index) => {
+    setNewVariant((prev) => {
+      URL.revokeObjectURL(prev.images[index]?.preview);
+      return { ...prev, images: prev.images.filter((_, i) => i !== index) };
+    });
+  };
+
+  const handleAddVariant = () => {
+    if (!newVariant.size || !newVariant.colorName) return;
+
+    const variantToAdd = {
+      size: newVariant.size,
+      colorway: {
+        name: newVariant.colorName,
+        hex: newVariant.colorHex || '#000000',
+      },
+      sku: newVariant.sku
+        ? newVariant.sku.trim().toUpperCase()
+        : `STCH-${newVariant.size}-${newVariant.colorName.toUpperCase()}`,
+      stock:
+        newVariant.stock !== ''
+          ? Number(newVariant.stock)
+          : Number(form.stock || 0),
+      price:
+        newVariant.price !== ''
+          ? { amount: Number(newVariant.price), currency: 'INR' }
+          : undefined,
+      images: newVariant.images,
+    };
+
+    setVariants([...variants, variantToAdd]);
+    // Reset variant input draft
+    setNewVariant({
+      size: 'M',
+      colorName: 'Onyx',
+      colorHex: '#000000',
+      sku: '',
+      stock: '',
+      price: '',
+      images: [],
+    });
+  };
+
+  const handleRemoveVariant = (index) => {
+    const removed = variants[index];
+    removed?.images?.forEach((img) => URL.revokeObjectURL(img.preview));
+    setVariants(variants.filter((_, i) => i !== index));
   };
 
   const handleImageSelect = (e) => {
@@ -81,6 +181,50 @@ const CreateProduct = () => {
     formData.append('price', form.price);
     formData.append('stock', form.stock || 0);
     formData.append('status', form.status || 'active');
+    formData.append('gender', form.gender || 'unisex');
+    if (form.category) formData.append('category', form.category);
+    if (form.collection) formData.append('collection', form.collection);
+    if (form.vendor) formData.append('vendor', form.vendor);
+    if (form.sku) formData.append('sku', form.sku);
+    if (tags.length > 0) formData.append('tags', JSON.stringify(tags));
+
+    // Attach parsed variants and unique sizes/colorways
+    if (variants.length > 0) {
+      // Serialize variant metadata without the File objects, then attach each
+      // variant's images under `variantImages_<index>` for the backend to pair
+      // up by position.
+      const variantsPayload = variants.map((v) => ({
+        size: v.size,
+        colorway: v.colorway,
+        sku: v.sku,
+        stock: v.stock,
+        ...(v.price ? { price: v.price } : {}),
+      }));
+      formData.append('variants', JSON.stringify(variantsPayload));
+
+      variants.forEach((v, index) => {
+        (v.images || []).forEach(({ file }) => {
+          formData.append(`variantImages_${index}`, file);
+        });
+      });
+
+      const extractedSizes = Array.from(
+        new Set(variants.map((v) => v.size).filter(Boolean)),
+      );
+      formData.append('sizes', JSON.stringify(extractedSizes));
+
+      const uniqueColorwaysMap = new Map();
+      variants.forEach((v) => {
+        if (v.colorway && v.colorway.name) {
+          uniqueColorwaysMap.set(v.colorway.name, v.colorway);
+        }
+      });
+      formData.append(
+        'colorways',
+        JSON.stringify(Array.from(uniqueColorwaysMap.values())),
+      );
+    }
+
     images.forEach(({ file }) => formData.append('images', file));
 
     const result = await handleCreateProduct(formData);
@@ -349,72 +493,284 @@ const CreateProduct = () => {
                 </section>
               </div>
 
-              {/* Variants */}
+              {/* Variants Builder Section */}
               <section className={cardCls}>
-                <div className="mb-4 flex items-center justify-between">
-                  <h2 className="font-display text-[11px] font-bold uppercase tracking-[0.12em] text-muted">
-                    Variants
-                  </h2>
-                  <button
-                    type="button"
-                    className="border border-accent/20 px-3 py-1 font-display text-[10px] font-bold uppercase tracking-[0.12em] text-accent transition-colors hover:bg-accent/10"
-                  >
-                    Add Option
-                  </button>
-                </div>
-                <div className="space-y-6">
+                <div className="mb-4 flex items-center justify-between border-b border-line pb-3">
                   <div>
-                    <label className={labelCls}>Size Chart</label>
-                    <div className="flex flex-wrap gap-2">
-                      {sizes.map((s, i) => (
-                        <button
-                          key={s}
-                          type="button"
-                          className={`flex h-12 w-12 items-center justify-center font-display text-xs font-bold ${
-                            i === 0
-                              ? 'border border-accent bg-accent/10 text-accent'
-                              : 'border border-line text-muted transition-colors hover:border-paper'
-                          }`}
-                        >
-                          {s}
-                        </button>
-                      ))}
+                    <h2 className="font-display text-[11px] font-bold uppercase tracking-[0.12em] text-paper">
+                      Product Variants
+                    </h2>
+                    <p className="text-[11px] text-muted">
+                      Add specific size, colorway, price override, and stock for
+                      each variant.
+                    </p>
+                  </div>
+                  <span className="border border-line bg-panel px-2.5 py-1 font-display text-[10px] font-bold uppercase tracking-wider text-accent">
+                    {variants.length}{' '}
+                    {variants.length === 1 ? 'Variant' : 'Variants'}
+                  </span>
+                </div>
+
+                {/* Variant Creation Form */}
+                <div className="mb-6 border border-line/80 bg-panel p-4 space-y-4">
+                  <h3 className="font-display text-[10px] font-bold uppercase tracking-[0.12em] text-accent">
+                    Create New Variant Option
+                  </h3>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
+                    <div>
+                      <label className={labelCls}>Size</label>
+                      <select
+                        name="size"
+                        value={newVariant.size}
+                        onChange={handleNewVariantChange}
+                        className={inputCls}
+                      >
+                        {['XS', 'S', 'M', 'L', 'XL', 'XXL'].map((sz) => (
+                          <option key={sz} value={sz}>
+                            {sz}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className={labelCls}>Colorway Name</label>
+                      <input
+                        type="text"
+                        name="colorName"
+                        value={newVariant.colorName}
+                        onChange={handleNewVariantChange}
+                        placeholder="e.g. Stealth Onyx"
+                        className={inputCls}
+                      />
+                    </div>
+
+                    <div>
+                      <label className={labelCls}>Color Hex</label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          name="colorHex"
+                          value={newVariant.colorHex}
+                          onChange={handleNewVariantChange}
+                          className="h-10 w-12 cursor-pointer border border-line bg-field p-1"
+                        />
+                        <input
+                          type="text"
+                          name="colorHex"
+                          value={newVariant.colorHex}
+                          onChange={handleNewVariantChange}
+                          placeholder="#000000"
+                          className={`${inputCls} flex-1 uppercase`}
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className={labelCls}>SKU (Optional)</label>
+                      <input
+                        type="text"
+                        name="sku"
+                        value={newVariant.sku}
+                        onChange={handleNewVariantChange}
+                        placeholder="e.g. STCH-M-ONYX"
+                        className={inputCls}
+                      />
+                    </div>
+
+                    <div>
+                      <label className={labelCls}>Stock (Qty)</label>
+                      <input
+                        type="number"
+                        name="stock"
+                        min="0"
+                        value={newVariant.stock}
+                        onChange={handleNewVariantChange}
+                        placeholder={form.stock || '0'}
+                        className={inputCls}
+                      />
+                    </div>
+
+                    <div>
+                      <label className={labelCls}>Price Override (INR)</label>
+                      <input
+                        type="number"
+                        name="price"
+                        min="0"
+                        step="0.01"
+                        value={newVariant.price}
+                        onChange={handleNewVariantChange}
+                        placeholder={form.price ? `₹${form.price}` : 'Default'}
+                        className={inputCls}
+                      />
                     </div>
                   </div>
+
+                  {/* Variant Images */}
                   <div>
-                    <label className={labelCls}>Colorways</label>
-                    <div className="flex flex-wrap gap-4">
-                      {colorways.map(({ name, hex, active }) => (
+                    <label className={labelCls}>
+                      Variant Images (Optional · max {MAX_VARIANT_IMAGES})
+                    </label>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => variantFileInputRef.current?.click()}
+                        disabled={newVariant.images.length >= MAX_VARIANT_IMAGES}
+                        className="group flex h-16 w-16 shrink-0 flex-col items-center justify-center border-2 border-dashed border-line transition-colors hover:border-accent/50 disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        <FiUploadCloud className="h-5 w-5 text-muted transition-colors group-hover:text-accent" />
+                      </button>
+                      <input
+                        ref={variantFileInputRef}
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        hidden
+                        onChange={handleVariantImageSelect}
+                      />
+
+                      {newVariant.images.map(({ file, preview }, i) => (
                         <div
-                          key={name}
-                          className="flex flex-col items-center gap-2"
+                          key={preview}
+                          className="group relative h-16 w-16 shrink-0 overflow-hidden border border-line"
                         >
+                          <img
+                            src={preview}
+                            alt={file.name}
+                            className="h-full w-full object-cover"
+                          />
                           <button
                             type="button"
-                            aria-label={name}
-                            style={{ backgroundColor: hex }}
-                            className={`h-10 w-10 rounded-full ${
-                              active
-                                ? 'border-2 border-accent p-0.5'
-                                : 'border border-line transition-colors hover:border-paper'
-                            }`}
+                            aria-label={`Remove ${file.name}`}
+                            onClick={() => removeVariantImage(i)}
+                            className="absolute right-0 top-0 flex h-5 w-5 items-center justify-center border border-line bg-field text-red-400 opacity-0 transition-opacity group-hover:opacity-100"
                           >
-                            {active && (
-                              <span className="block h-full w-full rounded-full border border-line" />
-                            )}
+                            <FiX className="h-3 w-3" />
                           </button>
-                          <span
-                            className={`font-display text-[10px] font-bold uppercase tracking-wide ${
-                              active ? 'text-accent' : 'text-muted'
-                            }`}
-                          >
-                            {name}
-                          </span>
                         </div>
                       ))}
                     </div>
                   </div>
+
+                  <div className="flex justify-end pt-2">
+                    <button
+                      type="button"
+                      onClick={handleAddVariant}
+                      className="flex items-center gap-2 border border-accent bg-accent/10 px-5 py-2 font-display text-[11px] font-bold uppercase tracking-[0.12em] text-accent transition-all hover:bg-accent hover:text-ink active:scale-95"
+                    >
+                      + Add Variant to List
+                    </button>
+                  </div>
                 </div>
+
+                {/* Configured Variants Table */}
+                {variants.length > 0 ? (
+                  <div className="overflow-x-auto border border-line">
+                    <table className="w-full text-left font-display text-[11px]">
+                      <thead className="border-b border-line bg-panel uppercase text-muted tracking-wider">
+                        <tr>
+                          <th className="p-3">Colorway</th>
+                          <th className="p-3">Size</th>
+                          <th className="p-3">SKU</th>
+                          <th className="p-3">Stock</th>
+                          <th className="p-3">Price</th>
+                          <th className="p-3">Images</th>
+                          <th className="p-3 text-right">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-line/60 bg-field">
+                        {variants.map((v, index) => (
+                          <tr
+                            key={index}
+                            className="transition-colors hover:bg-panel/50"
+                          >
+                            <td className="p-3">
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className="h-4 w-4 rounded-full border border-line"
+                                  style={{
+                                    backgroundColor: v.colorway?.hex || '#000',
+                                  }}
+                                />
+                                <span className="font-bold text-paper">
+                                  {v.colorway?.name}
+                                </span>
+                                <span className="text-[9px] text-faint uppercase">
+                                  ({v.colorway?.hex})
+                                </span>
+                              </div>
+                            </td>
+                            <td className="p-3">
+                              <span className="border border-line bg-panel px-2 py-0.5 font-bold text-accent">
+                                {v.size}
+                              </span>
+                            </td>
+                            <td className="p-3 text-muted tracking-wide">
+                              {v.sku || 'AUTO-GEN'}
+                            </td>
+                            <td className="p-3 font-semibold text-paper">
+                              {v.stock} units
+                            </td>
+                            <td className="p-3 text-accent font-semibold">
+                              {v.price?.amount
+                                ? `₹${v.price.amount}`
+                                : form.price
+                                  ? `₹${form.price} (Base)`
+                                  : 'Default'}
+                            </td>
+                            <td className="p-3">
+                              {v.images?.length > 0 ? (
+                                <div className="flex items-center gap-1">
+                                  {v.images.slice(0, 3).map((img) => (
+                                    <span
+                                      key={img.preview}
+                                      className="h-8 w-8 overflow-hidden border border-line"
+                                    >
+                                      <img
+                                        src={img.preview}
+                                        alt=""
+                                        className="h-full w-full object-cover"
+                                      />
+                                    </span>
+                                  ))}
+                                  {v.images.length > 3 && (
+                                    <span className="text-[9px] text-muted">
+                                      +{v.images.length - 3}
+                                    </span>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-[10px] text-faint uppercase">
+                                  None
+                                </span>
+                              )}
+                            </td>
+                            <td className="p-3 text-right">
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveVariant(index)}
+                                className="inline-flex items-center gap-1 border border-line bg-panel px-2.5 py-1 text-red-400 transition-colors hover:border-red-500/50 hover:bg-red-500/10"
+                              >
+                                <FiTrash2 className="h-3.5 w-3.5" />
+                                Remove
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center border border-dashed border-line bg-panel/30 py-8 text-center">
+                    <p className="font-display text-xs font-bold uppercase tracking-wider text-muted">
+                      No Variants Added Yet
+                    </p>
+                    <p className="mt-1 text-[11px] text-faint">
+                      Use the builder above to specify sizes, colors, and stock
+                      overrides for this product.
+                    </p>
+                  </div>
+                )}
               </section>
             </div>
 

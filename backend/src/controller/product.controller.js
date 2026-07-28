@@ -72,29 +72,124 @@ export const createProduct = async (req, res) => {
       vendor,
       tags,
       status,
+      gender,
+      variants,
     } = req.body;
 
-    if (!req.files || req.files.length === 0) {
+    const allFiles = Array.isArray(req.files) ? req.files : [];
+
+    // Product-level images arrive under the `images` field; per-variant images
+    // arrive under `variantImages_<index>` fields (index maps to the variant's
+    // position in the `variants` array).
+    const productFiles = allFiles.filter((file) => file.fieldname === 'images');
+
+    if (productFiles.length === 0) {
       return res.status(400).json({
         success: false,
         message: 'At least one product image is required',
       });
     }
 
-    // Upload every image to ImageKit in parallel.
-    const images = await Promise.all(
-      req.files.map(async (file) => {
-        const uploaded = await uploadFile({
-          buffer: file.buffer,
-          fileName: file.originalname,
-        });
-        return {
-          url: uploaded.fileUrl,
-          fileId: uploaded.fileId,
-          alt: file.originalname || title,
-        };
+    // Upload a single multer file to ImageKit and shape it for the schema.
+    const uploadImage = async (file) => {
+      const uploaded = await uploadFile({
+        buffer: file.buffer,
+        fileName: file.originalname,
+      });
+      return {
+        url: uploaded.fileUrl,
+        fileId: uploaded.fileId,
+        alt: file.originalname || title,
+      };
+    };
+
+    // Upload every product image to ImageKit in parallel.
+    const images = await Promise.all(productFiles.map(uploadImage));
+
+    // Group variant image files by their variant index for later attachment.
+    const variantFilesByIndex = new Map();
+    allFiles.forEach((file) => {
+      const match = /^variantImages_(\d+)$/.exec(file.fieldname);
+      if (!match) return;
+      const index = Number(match[1]);
+      if (!variantFilesByIndex.has(index)) variantFilesByIndex.set(index, []);
+      variantFilesByIndex.get(index).push(file);
+    });
+
+    const parseColorways = (val) => {
+      const rawList = parseList(val);
+      return rawList.map((item) => {
+        if (typeof item === 'string') {
+          return { name: item, hex: '#000000' };
+        }
+        if (item && typeof item === 'object') {
+          return {
+            name: item.name || 'Default',
+            hex: /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(item.hex)
+              ? item.hex
+              : '#000000',
+          };
+        }
+        return { name: 'Default', hex: '#000000' };
+      });
+    };
+
+    const parseVariants = (val) => {
+      if (!val) return [];
+      let list = [];
+      if (Array.isArray(val)) {
+        list = val;
+      } else {
+        try {
+          const parsed = JSON.parse(val);
+          list = Array.isArray(parsed) ? parsed : [];
+        } catch {
+          list = [];
+        }
+      }
+      return list.map((v) => ({
+        size: v.size ? String(v.size).toUpperCase() : undefined,
+        colorway:
+          typeof v.colorway === 'string'
+            ? { name: v.colorway, hex: '#000000' }
+            : v.colorway && typeof v.colorway === 'object'
+            ? {
+                name: v.colorway.name || 'Default',
+                hex: /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v.colorway.hex)
+                  ? v.colorway.hex
+                  : '#000000',
+              }
+            : undefined,
+        sku: v.sku ? String(v.sku).trim() : undefined,
+        stock: toNumberOrNull(v.stock) ?? 0,
+        price:
+          v.price?.amount !== undefined && v.price?.amount !== null
+            ? {
+                amount: toNumberOrNull(v.price.amount) ?? 0,
+                currency: v.price.currency || 'INR',
+              }
+            : undefined,
+        images: Array.isArray(v.images) ? v.images : [],
+      }));
+    };
+
+    const parsedVariants = parseVariants(variants);
+    const parsedColorways = parseColorways(colorways);
+
+    // Upload each variant's own images and merge them onto the variant. The
+    // fieldname index lines up with the variant's position in the array.
+    await Promise.all(
+      parsedVariants.map(async (variant, index) => {
+        const files = variantFilesByIndex.get(index) || [];
+        if (files.length === 0) return;
+        const uploaded = await Promise.all(files.map(uploadImage));
+        variant.images = [...(variant.images || []), ...uploaded];
       }),
     );
+
+    // Calculate aggregate stock if variants are provided
+    const totalVariantStock = parsedVariants.reduce((sum, v) => sum + (v.stock || 0), 0);
+    const finalStock = parsedVariants.length > 0 ? totalVariantStock : (toNumberOrNull(stock) ?? 0);
 
     const product = await productModel.create({
       title,
@@ -110,10 +205,12 @@ export const createProduct = async (req, res) => {
       costPerItem: toNumberOrNull(costPerItem),
       chargeTax: toBool(chargeTax, false),
       sku: sku ? String(sku).trim() : undefined,
-      stock: toNumberOrNull(stock) ?? 0,
+      stock: finalStock,
       trackQuantity: toBool(trackQuantity, true),
       sizes: parseList(sizes),
-      colorways: parseList(colorways),
+      colorways: parsedColorways,
+      variants: parsedVariants,
+      gender: gender || 'unisex',
       category,
       collectionName: collectionName || collection,
       vendor,
@@ -216,6 +313,46 @@ export const getProductById = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Failed to fetch product',
+    });
+  }
+};
+
+export const addProductVariants = async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const product = await productModel.findOne({
+      _id: productId,
+      admin: req.user._id,
+    });
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: 'product not found',
+      });
+    }
+    // files
+    const files = req.files;
+    const images = [];
+    if (files || files.length !== 0) {
+      await Promise.all(
+        files.map(async (file) => {
+          const image = await uploadFile({
+            buffer: file.buffer,
+            fileName: file.originalname,
+          });
+          return image;
+        }),
+      ).map((image) => {
+        images.push(image);
+      });
+    }
+
+    console.log(req.body);
+    console.log(images);
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
     });
   }
 };
