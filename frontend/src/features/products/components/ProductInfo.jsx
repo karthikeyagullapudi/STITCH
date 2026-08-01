@@ -7,7 +7,9 @@ import {
   FiPackage,
   FiTag,
   FiAlertCircle,
+  FiShoppingBag,
 } from 'react-icons/fi';
+import { useCart } from '../../cart/hook/useCart.js';
 
 const labelCaps =
   'font-display text-[11px] font-bold uppercase tracking-[0.12em]';
@@ -48,6 +50,10 @@ const ProductInfo = ({
   );
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState(0);
+  const [adding, setAdding] = useState(false);
+  const [feedback, setFeedback] = useState(null);
+
+  const { handleAddToCart } = useCart();
 
   const selectedVariant = propsSelectedVariant || internalSelectedVariant;
 
@@ -78,6 +84,25 @@ const ProductInfo = ({
   const currentStock = selectedVariant?.stock ?? product?.stock ?? 0;
   const isOutOfStock = currentStock <= 0;
   const isLowStock = !isOutOfStock && currentStock < LOW_STOCK_THRESHOLD;
+
+  const handleAddToBag = async () => {
+    if (!product?._id || isOutOfStock || adding) return;
+    setAdding(true);
+    setFeedback(null);
+    const result = await handleAddToCart({
+      productId: product._id,
+      variantId: selectedVariant?._id || null,
+      size: selectedSize,
+      colorway: selectedColorway || undefined,
+      quantity,
+    });
+    setAdding(false);
+    setFeedback(
+      result.success
+        ? { type: 'success', message: 'Added to your bag' }
+        : { type: 'error', message: result.error || 'Failed to add to bag' },
+    );
+  };
 
   return (
     <div className="flex flex-col">
@@ -372,9 +397,16 @@ const ProductInfo = ({
         <div className="space-y-2">
           <button
             type="button"
-            className={`${labelCaps} h-14 w-full bg-accent tracking-[0.15em] text-ink transition-all hover:brightness-110 active:scale-[0.98]`}
+            onClick={handleAddToBag}
+            disabled={adding || isOutOfStock}
+            className={`${labelCaps} flex h-14 w-full items-center justify-center gap-2 bg-accent tracking-[0.15em] text-ink transition-all hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50`}
           >
-            Add to Bag
+            <FiShoppingBag className="h-4 w-4" />
+            {isOutOfStock
+              ? 'Out of Stock'
+              : adding
+              ? 'Adding...'
+              : 'Add to Bag'}
           </button>
           <button
             type="button"
@@ -382,6 +414,20 @@ const ProductInfo = ({
           >
             Buy it Now
           </button>
+          {feedback && (
+            <p
+              className={`flex items-center gap-1.5 pt-1 font-display text-[11px] uppercase tracking-wide ${
+                feedback.type === 'success' ? 'text-emerald-400' : 'text-red-400'
+              }`}
+            >
+              {feedback.type === 'success' ? (
+                <FiCheck className="h-3.5 w-3.5" />
+              ) : (
+                <FiAlertCircle className="h-3.5 w-3.5" />
+              )}
+              {feedback.message}
+            </p>
+          )}
         </div>
       </div>
 

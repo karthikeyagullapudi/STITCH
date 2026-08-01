@@ -24,7 +24,11 @@ const router = createBrowserRouter([
   },
   {
     path: '/cart',
-    element: <Cart />,
+    element: (
+      <Protected role="user">
+        <Cart />
+      </Protected>
+    ),
   },
   {
     path: '/collections/mens',

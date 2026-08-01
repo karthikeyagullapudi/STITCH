@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router';
+import { useSelector } from 'react-redux';
 import { FiShoppingBag, FiMenu, FiX } from 'react-icons/fi';
+import { useCart } from '../../cart/hook/useCart.js';
 
 const navLinks = [
   { name: 'New', path: '/' },
@@ -15,6 +17,14 @@ const labelCaps =
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const { handleGetCart } = useCart();
+  const { items } = useSelector((state) => state.cart);
+  const cartCount = items.reduce((sum, item) => sum + item.quantity, 0);
+
+  // Keep the bag badge in sync with the server cart on load.
+  useEffect(() => {
+    handleGetCart();
+  }, []);
 
   const isLinkActive = (path) => {
     if (path === '/') {
@@ -68,9 +78,11 @@ const Header = () => {
             className="relative text-paper transition-transform active:scale-95"
           >
             <FiShoppingBag className="h-5 w-5" />
-            <span className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-ink">
-              2
-            </span>
+            {cartCount > 0 && (
+              <span className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-ink">
+                {cartCount}
+              </span>
+            )}
           </Link>
           <button
             type="button"
