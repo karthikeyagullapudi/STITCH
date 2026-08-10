@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router';
 import { useSelector } from 'react-redux';
-import { FiShoppingBag, FiMenu, FiX } from 'react-icons/fi';
+import { FiShoppingBag, FiHeart, FiMenu, FiX } from 'react-icons/fi';
 import { useCart } from '../../cart/hook/useCart.js';
 
 const navLinks = [
@@ -71,6 +71,17 @@ const Header = () => {
             className={`${labelCaps} hidden text-muted transition-colors hover:text-accent sm:block`}
           >
             Login
+          </Link>
+          <Link
+            to="/wishlist"
+            aria-label="Wishlist"
+            className={`transition-colors ${
+              isLinkActive('/wishlist')
+                ? 'text-accent'
+                : 'text-paper hover:text-accent'
+            }`}
+          >
+            <FiHeart className="h-5 w-5" />
           </Link>
           <Link
             to="/cart"

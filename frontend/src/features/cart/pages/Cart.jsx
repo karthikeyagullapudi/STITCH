@@ -71,7 +71,7 @@ const Cart = () => {
   }, []);
 
   // Guard against line items whose product was removed after being added.
-  const validItems = items.filter((item) => item.product);
+  const validItems = (items || []).filter((item) => item?.product);
   const currency = getItemPrice(validItems[0] || {}).currency || 'INR';
   const subtotal = validItems.reduce(
     (sum, item) => sum + getItemPrice(item).amount * item.quantity,
@@ -82,9 +82,11 @@ const Cart = () => {
   const total = subtotal + tax;
 
   // Storefront suggestions — real products not already in the bag.
-  const cartProductIds = new Set(validItems.map((i) => i.product._id));
-  const suggestions = allProducts
-    .filter((p) => !cartProductIds.has(p._id))
+  const cartProductIds = new Set(
+    validItems.map((i) => i.product?._id).filter(Boolean),
+  );
+  const suggestions = (allProducts || [])
+    .filter((p) => p && p._id && !cartProductIds.has(p._id))
     .slice(0, 4);
 
   return (

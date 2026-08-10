@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router';
+import { useNavigate } from 'react-router';
 import { useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { useProduct } from '../../hook/useProduct.js';
@@ -113,25 +113,13 @@ const AllProducts = () => {
                   <img
                     src={p.images?.[0]?.url || '/placeholder.jpg'}
                     alt={p.title}
-                    className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                   {p.collectionName && (
                     <span className="absolute right-3 top-3 bg-accent px-2 py-1 font-display text-[10px] font-bold uppercase tracking-wide text-ink">
                       {p.collectionName}
                     </span>
                   )}
-                  {/* Hover feature overlay */}
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-ink/60 p-6 text-center opacity-0 backdrop-blur-sm transition-opacity duration-300 group-hover:opacity-100">
-                    <span className="font-display text-[11px] font-bold uppercase leading-relaxed tracking-[0.12em] text-accent line-clamp-3">
-                      {p.description}
-                    </span>
-                    <Link
-                      to={`/product/${p._id}`}
-                      className="border border-accent bg-accent px-6 py-3 font-display text-[11px] font-bold uppercase tracking-[0.12em] text-ink transition active:scale-95"
-                    >
-                      View Details
-                    </Link>
-                  </div>
                 </div>
 
                 <div className="p-4">

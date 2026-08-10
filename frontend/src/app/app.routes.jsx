@@ -4,7 +4,8 @@ import Register from '../features/auth/pages/Register.jsx';
 import AllAdminProducts from '../features/products/pages/admin/AllAdminProducts.jsx';
 import CreateProduct from '../features/products/pages/admin/CreateProduct.jsx';
 import LandingPage from '../features/products/pages/user/LandingPage.jsx';
-import Cart from '../features/products/pages/user/Cart.jsx';
+import Cart from '../features/cart/pages/Cart.jsx';
+import Wishlist from '../features/wishlist/pages/Wishlist.jsx';
 import MensCollection from '../features/products/pages/user/AllProducts.jsx';
 import Product from '../features/products/pages/user/Product.jsx';
 import Protected from '../features/auth/components/Protected.jsx';
@@ -29,6 +30,10 @@ const router = createBrowserRouter([
         <Cart />
       </Protected>
     ),
+  },
+  {
+    path: '/wishlist',
+    element: <Wishlist />,
   },
   {
     path: '/collections/mens',

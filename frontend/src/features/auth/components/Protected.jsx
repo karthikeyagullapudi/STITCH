@@ -3,17 +3,31 @@ import { useSelector } from 'react-redux';
 import { Navigate } from 'react-router';
 
 const Protected = ({ children, role = 'user' }) => {
-  const { user, loading, error } = useSelector((state) => state.auth);
+  const { user, loading } = useSelector((state) => state.auth);
 
   if (loading) {
-    return <h1>Loading...</h1>;
-  }
-  if (!user) {
-    return <Navigate to="/login" />;
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-ink font-body text-paper">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-accent border-t-transparent" />
+          <p className="font-display text-[11px] font-bold uppercase tracking-[0.12em] text-muted">
+            Authenticating...
+          </p>
+        </div>
+      </div>
+    );
   }
 
-  if (user.role !== role) {
-    return <Navigate to="/" />;
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (role === 'admin' && user.role !== 'admin') {
+    return <Navigate to="/" replace />;
+  }
+
+  if (role === 'user' && user.role !== 'user' && user.role !== 'admin') {
+    return <Navigate to="/" replace />;
   }
 
   return children;

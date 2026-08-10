@@ -40,7 +40,9 @@ const ProductCard = ({ product }) => {
         <h3 className="mb-2 font-display text-lg font-semibold uppercase tracking-tight text-paper truncate">
           {product.title}
         </h3>
-        <p className="font-display text-sm text-accent">{formatPrice(product.price)}</p>
+        <p className="font-display text-sm text-accent">
+          {formatPrice(product.price)}
+        </p>
       </div>
     </div>
   );
