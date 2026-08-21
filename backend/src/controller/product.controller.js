@@ -153,13 +153,13 @@ export const createProduct = async (req, res) => {
           typeof v.colorway === 'string'
             ? { name: v.colorway, hex: '#000000' }
             : v.colorway && typeof v.colorway === 'object'
-            ? {
-                name: v.colorway.name || 'Default',
-                hex: /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v.colorway.hex)
-                  ? v.colorway.hex
-                  : '#000000',
-              }
-            : undefined,
+              ? {
+                  name: v.colorway.name || 'Default',
+                  hex: /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v.colorway.hex)
+                    ? v.colorway.hex
+                    : '#000000',
+                }
+              : undefined,
         sku: v.sku ? String(v.sku).trim() : undefined,
         stock: toNumberOrNull(v.stock) ?? 0,
         price:
@@ -188,8 +188,14 @@ export const createProduct = async (req, res) => {
     );
 
     // Calculate aggregate stock if variants are provided
-    const totalVariantStock = parsedVariants.reduce((sum, v) => sum + (v.stock || 0), 0);
-    const finalStock = parsedVariants.length > 0 ? totalVariantStock : (toNumberOrNull(stock) ?? 0);
+    const totalVariantStock = parsedVariants.reduce(
+      (sum, v) => sum + (v.stock || 0),
+      0,
+    );
+    const finalStock =
+      parsedVariants.length > 0
+        ? totalVariantStock
+        : (toNumberOrNull(stock) ?? 0);
 
     const product = await productModel.create({
       title,

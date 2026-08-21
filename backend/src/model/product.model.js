@@ -6,7 +6,7 @@ export const PRODUCT_STATUS = ['active', 'draft', 'archived'];
 export const CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'INR'];
 export const GENDERS = ['men', 'women', 'unisex'];
 
-const imageSchema = new mongoose.Schema(
+export const imageSchema = new mongoose.Schema(
   {
     url: { type: String, required: true },
     alt: { type: String, default: '' },
@@ -15,7 +15,7 @@ const imageSchema = new mongoose.Schema(
   { _id: false },
 );
 
-const colorwaySchema = new mongoose.Schema(
+export const colorwaySchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
     hex: {
@@ -30,7 +30,7 @@ const colorwaySchema = new mongoose.Schema(
   { _id: false },
 );
 
-const priceSchema = new mongoose.Schema(
+export const priceSchema = new mongoose.Schema(
   {
     amount: {
       type: Number,
@@ -46,7 +46,7 @@ const priceSchema = new mongoose.Schema(
   { _id: false },
 );
 
-const variantSchema = new mongoose.Schema(
+export const variantSchema = new mongoose.Schema(
   {
     size: {
       type: String,

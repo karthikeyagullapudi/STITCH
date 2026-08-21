@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router';
 import { useSelector } from 'react-redux';
 import { FiShoppingBag, FiHeart, FiMenu, FiX } from 'react-icons/fi';
 import { useCart } from '../../cart/hook/useCart.js';
+import { useWishlist } from '../../wishlist/hook/useWishlist.js';
 
 const navLinks = [
   { name: 'New', path: '/' },
@@ -18,12 +19,17 @@ const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
   const { handleGetCart } = useCart();
+  const { handleGetWishlist } = useWishlist();
   const { items } = useSelector((state) => state.cart);
+  const wishlistCount = useSelector((state) => state.wishlist.items.length);
   const cartCount = items.reduce((sum, item) => sum + item.quantity, 0);
 
-  // Keep the bag badge in sync with the server cart on load.
+  // Keep the bag and wishlist badges in sync with the server on load. The
+  // wishlist also has to be loaded for the hearts on product cards to know
+  // which products are already saved.
   useEffect(() => {
     handleGetCart();
+    handleGetWishlist();
   }, []);
 
   const isLinkActive = (path) => {
@@ -75,13 +81,18 @@ const Header = () => {
           <Link
             to="/wishlist"
             aria-label="Wishlist"
-            className={`transition-colors ${
+            className={`relative transition-colors ${
               isLinkActive('/wishlist')
                 ? 'text-accent'
                 : 'text-paper hover:text-accent'
             }`}
           >
             <FiHeart className="h-5 w-5" />
+            {wishlistCount > 0 && (
+              <span className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-ink">
+                {wishlistCount}
+              </span>
+            )}
           </Link>
           <Link
             to="/cart"

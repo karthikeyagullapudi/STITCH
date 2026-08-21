@@ -13,6 +13,7 @@ import {
 import Header from '../../products/components/Header.jsx';
 import { useCart } from '../hook/useCart.js';
 import { useProduct } from '../../products/hook/useProduct.js';
+import { useRazorpay, RazorpayOrderOptions } from 'react-razorpay';
 
 /* ------------------------------------------------------------------ */
 /* "Your Bag" — follows the STITCH Google-Stitch design, driven by the */
@@ -60,10 +61,14 @@ const Cart = () => {
     handleRemoveCartItem,
     handleClearCart,
     handleAddToCart,
+    handleCheckout,
+    handleVerifyCartOrder,
   } = useCart();
   const { handleGetAllProducts } = useProduct();
   const { items, errors } = useSelector((state) => state.cart);
   const { allProducts } = useSelector((state) => state.product);
+  const { error, isLoading, Razorpay } = useRazorpay();
+  const { user } = useSelector((state) => state.auth);
 
   useEffect(() => {
     handleGetCart();
@@ -88,6 +93,49 @@ const Cart = () => {
   const suggestions = (allProducts || [])
     .filter((p) => p && p._id && !cartProductIds.has(p._id))
     .slice(0, 4);
+
+  const handlePayment = async () => {
+    const res = await handleCheckout();
+    if (!res?.success || !res?.order) {
+      alert(res?.error || 'Failed to create order');
+      return;
+    }
+
+    const { order, key } = res;
+
+    const options = {
+      key: key,
+      amount: order.amount,
+      currency: order.currency || 'INR',
+      name: 'STITCH',
+      description: 'Cart Order Checkout',
+      order_id: order.id,
+      handler: async function (response) {
+        const isValid = await handleVerifyCartOrder(response);
+        if (isValid) {
+          navigate(`/order-success?orderId=${response?.razorpay_order_id}`);
+        }
+
+        await handleClearCart();
+      },
+      prefill: {
+        name: user.name,
+        email: user.email,
+        contact: user.phoneNumber,
+      },
+      theme: {
+        color: '#e5fe02',
+      },
+    };
+
+    const rzp = new Razorpay(options);
+    rzp.on('payment.failed', function (response) {
+      alert(
+        `Payment Failed: ${response.error?.description || 'Transaction unsuccessful.'}`,
+      );
+    });
+    rzp.open();
+  };
 
   return (
     <div className="min-h-screen bg-ink font-body text-paper">
@@ -322,6 +370,7 @@ const Cart = () => {
                 </div>
                 <button
                   type="button"
+                  onClick={handlePayment}
                   className="w-full rounded-[4px] bg-accent py-4 font-display text-base font-extrabold uppercase tracking-[0.2em] text-ink transition hover:brightness-110 active:scale-[0.98]"
                 >
                   Checkout

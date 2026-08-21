@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { useProduct } from '../../hook/useProduct.js';
 import Header from '../../components/Header.jsx';
+import WishlistButton from '../../../wishlist/components/WishlistButton.jsx';
 
 const currencySymbols = { INR: '₹', USD: '$', EUR: '€', GBP: '£', JPY: '¥' };
 const formatPrice = (price) => {
@@ -114,6 +115,10 @@ const AllProducts = () => {
                     src={p.images?.[0]?.url || '/placeholder.jpg'}
                     alt={p.title}
                     className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                  <WishlistButton
+                    productId={p._id}
+                    className="absolute left-3 top-3"
                   />
                   {p.collectionName && (
                     <span className="absolute right-3 top-3 bg-accent px-2 py-1 font-display text-[10px] font-bold uppercase tracking-wide text-ink">

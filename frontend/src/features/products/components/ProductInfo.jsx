@@ -10,6 +10,7 @@ import {
   FiShoppingBag,
 } from 'react-icons/fi';
 import { useCart } from '../../cart/hook/useCart.js';
+import WishlistButton from '../../wishlist/components/WishlistButton.jsx';
 
 const labelCaps =
   'font-display text-[11px] font-bold uppercase tracking-[0.12em]';
@@ -414,6 +415,15 @@ const ProductInfo = ({
           >
             Buy it Now
           </button>
+          {/* Saves the size/colour the shopper has actually selected, so
+              "Move to Bag" from the wishlist carries the choice through. */}
+          <WishlistButton
+            variant="full"
+            productId={product?._id}
+            variantId={selectedVariant?._id || null}
+            size={selectedSize}
+            colorway={selectedColorway || undefined}
+          />
           {feedback && (
             <p
               className={`flex items-center gap-1.5 pt-1 font-display text-[11px] uppercase tracking-wide ${

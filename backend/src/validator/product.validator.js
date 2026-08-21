@@ -17,14 +17,6 @@ const validate = (req, res, next) => {
   next();
 };
 
-/* ------------------------------------------------------------------ */
-/* Sanitizers — multipart/form-data delivers structured fields as JSON  */
-/* strings, so parse them once here and let the controller consume real */
-/* arrays/objects.                                                      */
-/* ------------------------------------------------------------------ */
-
-// Leaves the raw value untouched when it is not valid JSON so the matching
-// custom() check can report a precise error instead of a silent [].
 const parseJson = (value) => {
   if (value === undefined || value === null || value === '') return value;
   if (typeof value !== 'string') return value;
@@ -35,7 +27,6 @@ const parseJson = (value) => {
   }
 };
 
-// Accepts a JSON array, a single JSON object, or a comma-separated list.
 const parseToArray = (value) => {
   if (value === undefined || value === null || value === '') return value;
   const parsed = parseJson(value);
@@ -52,10 +43,6 @@ const isPresent = (value) =>
 
 const isPlainObject = (value) =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
-
-/* ------------------------------------------------------------------ */
-/* Shared field checks                                                  */
-/* ------------------------------------------------------------------ */
 
 const assertColorway = (colorway, label) => {
   if (!isPlainObject(colorway)) {
@@ -89,13 +76,6 @@ const assertPrice = (price, label) => {
   }
 };
 
-/**
- * Validates a list of variants in one pass, checking each entry's shape and
- * the uniqueness constraints that only make sense across the whole list
- * (one variant per size + colourway, no repeated SKUs).
- *
- * Throws on the first problem — express-validator turns that into a 400.
- */
 const assertVariantList = (variants, { reservedSkus = [] } = {}) => {
   if (!Array.isArray(variants)) {
     throw new Error(
@@ -119,7 +99,6 @@ const assertVariantList = (variants, { reservedSkus = [] } = {}) => {
 
     const { size, colorway, sku, stock, price, images } = variant;
 
-    /* ---- Size ---- */
     if (!isPresent(size)) {
       throw new Error(`${label}: size is required`);
     }
@@ -128,10 +107,8 @@ const assertVariantList = (variants, { reservedSkus = [] } = {}) => {
       throw new Error(`${label}: size must be one of ${SIZES.join(', ')}`);
     }
 
-    /* ---- Colorway ---- */
     assertColorway(colorway, label);
 
-    /* ---- One variant per size + colourway ---- */
     const combo = `${normalizedSize}::${colorway.name.trim().toLowerCase()}`;
     if (seenCombos.has(combo)) {
       throw new Error(
@@ -140,7 +117,6 @@ const assertVariantList = (variants, { reservedSkus = [] } = {}) => {
     }
     seenCombos.add(combo);
 
-    /* ---- SKU (optional, unique within the request) ---- */
     if (isPresent(sku)) {
       if (typeof sku !== 'string') {
         throw new Error(`${label}: sku must be a string`);
@@ -152,7 +128,6 @@ const assertVariantList = (variants, { reservedSkus = [] } = {}) => {
       seenSkus.add(normalizedSku);
     }
 
-    /* ---- Stock (optional, defaults to 0 in the model) ---- */
     if (isPresent(stock)) {
       const quantity = Number(stock);
       if (!Number.isInteger(quantity) || quantity < 0) {
@@ -160,12 +135,10 @@ const assertVariantList = (variants, { reservedSkus = [] } = {}) => {
       }
     }
 
-    /* ---- Price override (optional) ---- */
     if (isPresent(price)) {
       assertPrice(price, label);
     }
 
-    /* ---- Pre-uploaded images (optional) ---- */
     if (images !== undefined) {
       if (!Array.isArray(images)) {
         throw new Error(`${label}: images must be an array`);
@@ -185,12 +158,7 @@ const assertVariantList = (variants, { reservedSkus = [] } = {}) => {
   return true;
 };
 
-/* ------------------------------------------------------------------ */
-/* Create product                                                       */
-/* ------------------------------------------------------------------ */
-
 export const createProductValidator = [
-  /* ---- General ---- */
   body('title')
     .trim()
     .notEmpty()
@@ -210,7 +178,6 @@ export const createProductValidator = [
     .isString()
     .withMessage('Slug must be a string'),
 
-  /* ---- Pricing ---- */
   body('price')
     .notEmpty()
     .withMessage('Price is required')
@@ -237,7 +204,6 @@ export const createProductValidator = [
     .isBoolean()
     .withMessage('Charge tax must be a boolean'),
 
-  /* ---- Inventory ---- */
   body('sku')
     .optional({ values: 'falsy' })
     .isString()
@@ -253,7 +219,6 @@ export const createProductValidator = [
     .isBoolean()
     .withMessage('Track quantity must be a boolean'),
 
-  /* ---- Variants ---- */
   body('variants')
     .optional({ values: 'falsy' })
     .customSanitizer(parseJson)
@@ -296,7 +261,6 @@ export const createProductValidator = [
       return true;
     }),
 
-  /* ---- Organization ---- */
   body('gender')
     .optional({ values: 'falsy' })
     .isIn(GENDERS)
@@ -320,16 +284,12 @@ export const createProductValidator = [
       return true;
     }),
 
-  /* ---- Publish status ---- */
   body('status')
     .optional({ values: 'falsy' })
     .isIn(PRODUCT_STATUS)
     .withMessage(`Status must be one of: ${PRODUCT_STATUS.join(', ')}`),
 
-  /* ---- Media ---- */
   body('images').custom((value, { req }) => {
-    // `req.files` also carries per-variant images, so only count the ones
-    // uploaded under the product-level `images` field.
     const productImages = (req.files || []).filter(
       (file) => file.fieldname === 'images',
     );
@@ -342,10 +302,6 @@ export const createProductValidator = [
   validate,
 ];
 
-/* ------------------------------------------------------------------ */
-/* Add variants to an existing product                                  */
-/* ------------------------------------------------------------------ */
-
 export const addProductVariantsValidator = [
   param('productId')
     .notEmpty()
@@ -357,7 +313,6 @@ export const addProductVariantsValidator = [
       return true;
     }),
 
-  // Accepts either a variants array or a single variant object.
   body('variants')
     .notEmpty()
     .withMessage('At least one variant is required')

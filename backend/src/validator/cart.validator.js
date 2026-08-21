@@ -17,10 +17,6 @@ const isValidObjectId = (label) => (value) => {
   return true;
 };
 
-/* ------------------------------------------------------------------ */
-/* Add an item to the cart                                             */
-/* ------------------------------------------------------------------ */
-
 export const addToCartValidator = [
   body('productId')
     .notEmpty()
@@ -58,10 +54,6 @@ export const addToCartValidator = [
   validate,
 ];
 
-/* ------------------------------------------------------------------ */
-/* Update a line item's quantity                                       */
-/* ------------------------------------------------------------------ */
-
 export const updateCartItemValidator = [
   param('itemId')
     .notEmpty()
@@ -78,10 +70,6 @@ export const updateCartItemValidator = [
 
   validate,
 ];
-
-/* ------------------------------------------------------------------ */
-/* Remove a single line item                                          */
-/* ------------------------------------------------------------------ */
 
 export const cartItemParamValidator = [
   param('itemId')

@@ -34,6 +34,14 @@ if (!process.env.IMAGEKIT_PRIVATE_KEY && !process.env.IMAGE_KIT_PRIVATE_KEY) {
   throw new Error('IMAGEKIT_PRIVATE_KEY is not defined');
 }
 
+if (!process.env.RAZORPAY_API_KEY) {
+  throw new Error('RAZORPAY_API_KEY is not defined');
+}
+
+if (!process.env.RAZORPAY_API_SECRET) {
+  throw new Error('RAZORPAY_API_SECRET is not defined');
+}
+
 export const Config = {
   PORT: process.env.PORT,
   DB_URI: process.env.DB_URI,
@@ -43,5 +51,8 @@ export const Config = {
   GOOGLE_CALLBACK_URL: process.env.GOOGLE_CALLBACK_URL,
   NODE_ENV: process.env.NODE_ENV || 'development',
   CLIENT_URL: process.env.CLIENT_URL || 'http://localhost:5173',
-  IMAGEKIT_PRIVATE_KEY: process.env.IMAGEKIT_PRIVATE_KEY || process.env.IMAGE_KIT_PRIVATE_KEY,
+  IMAGEKIT_PRIVATE_KEY:
+    process.env.IMAGEKIT_PRIVATE_KEY || process.env.IMAGE_KIT_PRIVATE_KEY,
+  RAZORPAY_API_KEY: process.env.RAZORPAY_API_KEY,
+  RAZORPAY_API_SECRET: process.env.RAZORPAY_API_SECRET,
 };

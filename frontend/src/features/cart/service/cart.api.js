@@ -51,3 +51,29 @@ export const clearCart = async () => {
     throw error.response?.data || { message: 'Failed to clear cart' };
   }
 };
+
+export const createCartOrder = async () => {
+  try {
+    const response = await cartApiInstance.post('/payment/create/order');
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Failed to create order' };
+  }
+};
+
+export const verifyCartOrder = async ({
+  razorpayOrderId,
+  razorpayPaymentId,
+  razorpaySignature,
+}) => {
+  try {
+    const response = await cartApiInstance.post('/payment/verify/order', {
+      razorpayOrderId,
+      razorpayPaymentId,
+      razorpaySignature,
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Failed to verify order' };
+  }
+};

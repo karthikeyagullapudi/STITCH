@@ -5,13 +5,13 @@ import {
   updateCartItem,
   removeCartItem,
   clearCart,
+  createCartOrder,
+  verifyCartOrder,
 } from '../service/cart.api.js';
 import { setCart, setLoading, setError } from '../state/cart.slice.js';
 
 const readError = (error, fallback) =>
-  error?.message ||
-  error?.errors?.map((e) => e.msg).join(', ') ||
-  fallback;
+  error?.message || error?.errors?.map((e) => e.msg).join(', ') || fallback;
 
 export const useCart = () => {
   const dispatch = useDispatch();
@@ -87,11 +87,51 @@ export const useCart = () => {
     }
   };
 
+  const handleCheckout = async () => {
+    try {
+      dispatch(setLoading(true));
+      dispatch(setError(null));
+      const data = await createCartOrder();
+      return { success: true, order: data?.order, key: data?.key };
+    } catch (error) {
+      const errorMsg = readError(error, 'Failed to create order');
+      dispatch(setError(errorMsg));
+      return { success: false, error: errorMsg };
+    } finally {
+      dispatch(setLoading(false));
+    }
+  };
+
+  const handleVerifyCartOrder = async ({
+    razorpayOrderId,
+    razorpayPaymentId,
+    razorpaySignature,
+  }) => {
+    try {
+      dispatch(setLoading(true));
+      dispatch(setError(null));
+      const data = await verifyCartOrder({
+        razorpayOrderId,
+        razorpayPaymentId,
+        razorpaySignature,
+      });
+      return { success: true, order: data?.order };
+    } catch (error) {
+      const errorMsg = readError(error, 'Failed to verify order');
+      dispatch(setError(errorMsg));
+      return { success: false, error: errorMsg };
+    } finally {
+      dispatch(setLoading(false));
+    }
+  };
+
   return {
     handleGetCart,
     handleAddToCart,
     handleUpdateCartItem,
     handleRemoveCartItem,
     handleClearCart,
+    handleCheckout,
+    handleVerifyCartOrder,
   };
 };

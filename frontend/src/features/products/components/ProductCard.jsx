@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router';
+import WishlistButton from '../../wishlist/components/WishlistButton.jsx';
 
 const currencySymbols = { INR: '₹', USD: '$', EUR: '€', GBP: '£', JPY: '¥' };
 const formatPrice = (price) => {
@@ -26,6 +27,10 @@ const ProductCard = ({ product }) => {
           src={product.images?.[0]?.url || '/placeholder.jpg'}
           alt={product.title}
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+        />
+        <WishlistButton
+          productId={product._id}
+          className="absolute left-3 top-3"
         />
         {product.collectionName && (
           <span className="absolute right-3 top-3 bg-accent px-2 py-1 font-display text-[10px] font-bold uppercase tracking-wide text-ink">
