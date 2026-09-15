@@ -33,7 +33,11 @@ const router = createBrowserRouter([
   },
   {
     path: '/wishlist',
-    element: <Wishlist />,
+    element: (
+      <Protected role="user">
+        <Wishlist />
+      </Protected>
+    ),
   },
   {
     path: '/collections/mens',

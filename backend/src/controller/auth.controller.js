@@ -38,7 +38,8 @@ export const userRegister = async (req, res) => {
       return res.status(400).json({ message: 'User already exists' });
     }
 
-    const user = await userModel.create(req.body);
+    // Whitelist fields so clients can't set approval/verification flags.
+    const user = await userModel.create({ email, password, name, role, phone });
     const createdUser = await userModel.findById(user._id).select('-password');
 
     res.status(201).json({
@@ -67,6 +68,13 @@ export const userLogin = async (req, res) => {
       });
     }
 
+    if (!user.password) {
+      return res.status(401).json({
+        success: false,
+        message: 'This account uses Google sign-in. Please continue with Google.',
+      });
+    }
+
     const isPasswordValid = await user.comparePasswords(password);
     if (!isPasswordValid) {
       return res.status(401).json({
@@ -82,6 +90,13 @@ export const userLogin = async (req, res) => {
           role === 'admin'
             ? 'This account is not an admin account. Please use the user login.'
             : 'This is an admin account. Please use the admin login.',
+      });
+    }
+
+    if (user.role === 'admin' && !user.adminAproved) {
+      return res.status(403).json({
+        success: false,
+        message: 'Your admin account is pending approval.',
       });
     }
 
@@ -115,10 +130,13 @@ export const googleAuthCallBack = async (req, res) => {
         name: { firstName: displayName },
         profilePic,
       });
+    } else if (!user.googleId) {
+      user.googleId = id;
+      await user.save();
     }
 
     const token = jwt.sign({ id: user._id }, Config.JWT_SECRET, {
-      expiresIn: '7d',
+      expiresIn: '1d',
     });
 
     res.cookie('token', token, {

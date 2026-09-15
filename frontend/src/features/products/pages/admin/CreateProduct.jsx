@@ -48,8 +48,13 @@ const CreateProduct = () => {
   const [form, setForm] = useState({
     title: '',
     description: '',
+    slug: '',
     price: '',
+    compareAtPrice: '',
+    costPerItem: '',
+    chargeTax: false,
     stock: '',
+    trackQuantity: true,
     status: 'active',
     gender: 'unisex',
     category: "MEN'S OUTERWEAR",
@@ -76,7 +81,8 @@ const CreateProduct = () => {
   const variantFileInputRef = useRef(null);
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value, type, checked } = e.target;
+    setForm({ ...form, [name]: type === 'checkbox' ? checked : value });
   };
 
   const handleAddTag = (e) => {
@@ -178,8 +184,14 @@ const CreateProduct = () => {
     const formData = new FormData();
     formData.append('title', form.title);
     formData.append('description', form.description);
+    if (form.slug) formData.append('slug', form.slug);
     formData.append('price', form.price);
+    if (form.compareAtPrice)
+      formData.append('compareAtPrice', form.compareAtPrice);
+    if (form.costPerItem) formData.append('costPerItem', form.costPerItem);
+    formData.append('chargeTax', form.chargeTax);
     formData.append('stock', form.stock || 0);
+    formData.append('trackQuantity', form.trackQuantity);
     formData.append('status', form.status || 'active');
     formData.append('gender', form.gender || 'unisex');
     if (form.category) formData.append('category', form.category);
@@ -188,7 +200,7 @@ const CreateProduct = () => {
     if (form.sku) formData.append('sku', form.sku);
     if (tags.length > 0) formData.append('tags', JSON.stringify(tags));
 
-    // Attach parsed variants and unique sizes/colorways
+    // Attach parsed variants and unique colorways
     if (variants.length > 0) {
       // Serialize variant metadata without the File objects, then attach each
       // variant's images under `variantImages_<index>` for the backend to pair
@@ -207,11 +219,6 @@ const CreateProduct = () => {
           formData.append(`variantImages_${index}`, file);
         });
       });
-
-      const extractedSizes = Array.from(
-        new Set(variants.map((v) => v.size).filter(Boolean)),
-      );
-      formData.append('sizes', JSON.stringify(extractedSizes));
 
       const uniqueColorwaysMap = new Map();
       variants.forEach((v) => {
@@ -393,6 +400,8 @@ const CreateProduct = () => {
                       <input
                         type="text"
                         name="slug"
+                        value={form.slug}
+                        onChange={handleChange}
                         placeholder="luna-01-modular-parka"
                         className={`${inputCls} flex-1`}
                       />
@@ -425,6 +434,10 @@ const CreateProduct = () => {
                       <input
                         type="number"
                         name="compareAtPrice"
+                        value={form.compareAtPrice}
+                        onChange={handleChange}
+                        min="0"
+                        step="0.01"
                         placeholder="0.00"
                         className={inputCls}
                       />
@@ -434,6 +447,10 @@ const CreateProduct = () => {
                       <input
                         type="number"
                         name="costPerItem"
+                        value={form.costPerItem}
+                        onChange={handleChange}
+                        min="0"
+                        step="0.01"
                         placeholder="0.00"
                         className={inputCls}
                       />
@@ -443,6 +460,8 @@ const CreateProduct = () => {
                     <input
                       type="checkbox"
                       name="chargeTax"
+                      checked={form.chargeTax}
+                      onChange={handleChange}
                       className="stitch-checkbox"
                     />
                     <span className="text-xs uppercase tracking-wide text-muted">
@@ -461,6 +480,8 @@ const CreateProduct = () => {
                       <input
                         type="text"
                         name="sku"
+                        value={form.sku}
+                        onChange={handleChange}
                         placeholder="STCH-LUNA-01-BLK"
                         className={inputCls}
                       />
@@ -484,9 +505,19 @@ const CreateProduct = () => {
                       <button
                         type="button"
                         aria-label="Toggle track quantity"
-                        className="relative h-5 w-10 rounded-full bg-accent p-1"
+                        aria-pressed={form.trackQuantity}
+                        onClick={() =>
+                          setForm({ ...form, trackQuantity: !form.trackQuantity })
+                        }
+                        className={`relative h-5 w-10 rounded-full p-1 transition-colors ${
+                          form.trackQuantity ? 'bg-accent' : 'bg-line'
+                        }`}
                       >
-                        <span className="block h-3 w-3 translate-x-5 rounded-full bg-ink" />
+                        <span
+                          className={`block h-3 w-3 rounded-full bg-ink transition-transform ${
+                            form.trackQuantity ? 'translate-x-5' : ''
+                          }`}
+                        />
                       </button>
                     </div>
                   </div>
@@ -806,8 +837,24 @@ const CreateProduct = () => {
                 <h2 className={cardTitleCls}>Organization</h2>
                 <div className="space-y-4">
                   <div>
+                    <label className={labelCls}>Gender</label>
+                    <Select
+                      name="gender"
+                      value={form.gender}
+                      onChange={handleChange}
+                    >
+                      <option value="men">MEN</option>
+                      <option value="women">WOMEN</option>
+                      <option value="unisex">UNISEX</option>
+                    </Select>
+                  </div>
+                  <div>
                     <label className={labelCls}>Category</label>
-                    <Select name="category" defaultValue="MEN'S OUTERWEAR">
+                    <Select
+                      name="category"
+                      value={form.category}
+                      onChange={handleChange}
+                    >
                       <option>MEN'S OUTERWEAR</option>
                       <option>WOMEN'S ACCESSORIES</option>
                       <option>UNISEX CARGO</option>
@@ -815,7 +862,11 @@ const CreateProduct = () => {
                   </div>
                   <div>
                     <label className={labelCls}>Collection</label>
-                    <Select name="collection" defaultValue="SS24 LUNACORE">
+                    <Select
+                      name="collection"
+                      value={form.collection}
+                      onChange={handleChange}
+                    >
                       <option>SS24 LUNACORE</option>
                       <option>FW23 STRUCTURALISM</option>
                       <option>CORE ESSENTIALS</option>
@@ -826,6 +877,8 @@ const CreateProduct = () => {
                     <input
                       type="text"
                       name="vendor"
+                      value={form.vendor}
+                      onChange={handleChange}
                       placeholder="STITCH FACTORY-01"
                       className={inputCls}
                     />
@@ -833,7 +886,7 @@ const CreateProduct = () => {
                   <div>
                     <label className={labelCls}>Tags</label>
                     <div className="flex min-h-[80px] flex-wrap content-start gap-2 border border-line bg-panel p-2">
-                      {['Waterproof', 'Cordura'].map((tag) => (
+                      {tags.map((tag) => (
                         <span
                           key={tag}
                           className="flex items-center gap-1.5 bg-line px-2 py-1 font-display text-[10px] font-bold uppercase tracking-wide text-paper"
@@ -841,6 +894,8 @@ const CreateProduct = () => {
                           {tag}
                           <button
                             type="button"
+                            aria-label={`Remove ${tag}`}
+                            onClick={() => handleRemoveTag(tag)}
                             className="text-muted transition-colors hover:text-accent"
                           >
                             <FiX className="h-3 w-3" />
@@ -850,6 +905,9 @@ const CreateProduct = () => {
                       <input
                         type="text"
                         name="tagInput"
+                        value={tagInput}
+                        onChange={(e) => setTagInput(e.target.value)}
+                        onKeyDown={handleAddTag}
                         placeholder="Add..."
                         className="w-20 bg-transparent p-1 font-display text-[10px] uppercase tracking-wide text-paper outline-none placeholder:text-faint"
                       />

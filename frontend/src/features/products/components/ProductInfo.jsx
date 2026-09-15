@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router';
+import { useSelector } from 'react-redux';
 import {
   FiDroplet,
   FiWind,
@@ -35,47 +37,45 @@ const getSpecIcon = (tag) => {
   return FiShield;
 };
 
-const ProductInfo = ({
-  product,
-  selectedVariant: propsSelectedVariant,
-  onSelectVariant,
-}) => {
-  const [selectedSize, setSelectedSize] = useState(
-    product?.sizes?.[0] || 'M',
-  );
-  const [selectedColorway, setSelectedColorway] = useState(
-    product?.colorways?.[0] || null,
-  );
-  const [internalSelectedVariant, setInternalSelectedVariant] = useState(
-    product?.variants?.[0] || null,
-  );
+const ProductInfo = ({ product, selectedVariant, onSelectVariant }) => {
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState(0);
   const [adding, setAdding] = useState(false);
   const [feedback, setFeedback] = useState(null);
 
+  const navigate = useNavigate();
+  const user = useSelector((state) => state.auth.user);
   const { handleAddToCart } = useCart();
 
-  const selectedVariant = propsSelectedVariant || internalSelectedVariant;
-
+  // Size/colour options come from the real variants, and the selected variant
+  // is the single source of truth for both.
   const variants = product?.variants || [];
-  const sizes = product?.sizes?.length
-    ? product.sizes
-    : ['XS', 'S', 'M', 'L', 'XL'];
-  const colorways = product?.colorways?.length
-    ? product.colorways
-    : [
-        { name: 'Onyx', hex: '#000000' },
-        { name: 'Olive', hex: '#2A2D2B' },
-        { name: 'Wolf', hex: '#4A4A4A' },
-      ];
+  const sizes = [...new Set(variants.map((v) => v.size).filter(Boolean))];
+  const colorways = [
+    ...new Map(
+      variants
+        .filter((v) => v.colorway?.name)
+        .map((v) => [v.colorway.name, v.colorway]),
+    ).values(),
+  ];
+  const selectedSize = selectedVariant?.size;
+  const selectedColorway = selectedVariant?.colorway;
 
-  const handleSelectVariant = (variant) => {
-    setInternalSelectedVariant(variant);
-    if (variant.size) setSelectedSize(variant.size);
-    if (variant.colorway) setSelectedColorway(variant.colorway);
-    onSelectVariant?.(variant);
-  };
+  // Keep the other option when that combination exists, else take the first
+  // variant offering the clicked option.
+  const handleSelectSize = (size) =>
+    onSelectVariant(
+      variants.find(
+        (v) => v.size === size && v.colorway?.name === selectedColorway?.name,
+      ) || variants.find((v) => v.size === size),
+    );
+
+  const handleSelectColorway = (name) =>
+    onSelectVariant(
+      variants.find(
+        (v) => v.colorway?.name === name && v.size === selectedSize,
+      ) || variants.find((v) => v.colorway?.name === name),
+    );
 
   const currentPrice = selectedVariant?.price
     ? formatPrice(selectedVariant.price)
@@ -88,6 +88,11 @@ const ProductInfo = ({
 
   const handleAddToBag = async () => {
     if (!product?._id || isOutOfStock || adding) return;
+    // The bag is per-user — send guests to log in first.
+    if (!user) {
+      navigate('/login', { state: { from: window.location.pathname } });
+      return;
+    }
     setAdding(true);
     setFeedback(null);
     const result = await handleAddToCart({
@@ -209,64 +214,68 @@ const ProductInfo = ({
 
       <div className="mb-10 space-y-8">
         {/* Size Selection UI */}
-        <div>
-          <div className="mb-2 flex items-end justify-between">
-            <label className={`${labelCaps} text-paper`}>
-              Select Size: <span className="text-accent">{selectedSize}</span>
-            </label>
-            <button
-              type="button"
-              className="font-display text-xs text-muted underline underline-offset-4 transition-colors hover:text-accent"
-            >
-              Size Guide
-            </button>
-          </div>
-          <div className="grid grid-cols-5 gap-2">
-            {sizes.map((s) => (
+        {sizes.length > 0 && (
+          <div>
+            <div className="mb-2 flex items-end justify-between">
+              <label className={`${labelCaps} text-paper`}>
+                Select Size: <span className="text-accent">{selectedSize}</span>
+              </label>
               <button
-                key={s}
                 type="button"
-                onClick={() => setSelectedSize(s)}
-                className={`flex h-12 items-center justify-center font-display text-sm font-bold uppercase transition-all active:scale-95 ${
-                  s === selectedSize
-                    ? 'border border-accent bg-field text-accent'
-                    : 'border border-line text-paper hover:border-accent'
-                }`}
+                className="font-display text-xs text-muted underline underline-offset-4 transition-colors hover:text-accent"
               >
-                {s}
+                Size Guide
               </button>
-            ))}
+            </div>
+            <div className="grid grid-cols-5 gap-2">
+              {sizes.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => handleSelectSize(s)}
+                  className={`flex h-12 items-center justify-center font-display text-sm font-bold uppercase transition-all active:scale-95 ${
+                    s === selectedSize
+                      ? 'border border-accent bg-field text-accent'
+                      : 'border border-line text-paper hover:border-accent'
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Colorways Selection UI */}
-        <div>
-          <label className={`${labelCaps} mb-2 block text-paper`}>
-            Select Color: <span className="text-accent">{selectedColorway?.name}</span>
-          </label>
-          <div className="flex flex-wrap gap-3">
-            {colorways.map((c) => (
-              <button
-                key={c.name}
-                type="button"
-                onClick={() => setSelectedColorway(c)}
-                className={`flex items-center gap-2 rounded-full border-2 px-3 py-1.5 transition-all active:scale-95 ${
-                  selectedColorway?.name === c.name
-                    ? 'border-accent bg-panel text-accent scale-105'
-                    : 'border-line bg-field text-muted hover:border-accent hover:text-paper'
-                }`}
-              >
-                <span
-                  className="h-4 w-4 rounded-full border border-line"
-                  style={{ backgroundColor: c.hex }}
-                />
-                <span className="font-display text-[10px] font-bold uppercase tracking-wider">
-                  {c.name}
-                </span>
-              </button>
-            ))}
+        {colorways.length > 0 && (
+          <div>
+            <label className={`${labelCaps} mb-2 block text-paper`}>
+              Select Color: <span className="text-accent">{selectedColorway?.name}</span>
+            </label>
+            <div className="flex flex-wrap gap-3">
+              {colorways.map((c) => (
+                <button
+                  key={c.name}
+                  type="button"
+                  onClick={() => handleSelectColorway(c.name)}
+                  className={`flex items-center gap-2 rounded-full border-2 px-3 py-1.5 transition-all active:scale-95 ${
+                    selectedColorway?.name === c.name
+                      ? 'border-accent bg-panel text-accent scale-105'
+                      : 'border-line bg-field text-muted hover:border-accent hover:text-paper'
+                  }`}
+                >
+                  <span
+                    className="h-4 w-4 rounded-full border border-line"
+                    style={{ backgroundColor: c.hex }}
+                  />
+                  <span className="font-display text-[10px] font-bold uppercase tracking-wider">
+                    {c.name}
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Product Variants Matrix Design UI */}
         {variants.length > 0 && (
@@ -291,7 +300,7 @@ const ProductInfo = ({
                 return (
                   <div
                     key={v._id || idx}
-                    onClick={() => handleSelectVariant(v)}
+                    onClick={() => onSelectVariant(v)}
                     className={`group cursor-pointer border p-3 transition-all flex gap-3 items-center ${
                       isSelected
                         ? 'border-accent bg-field shadow-md'

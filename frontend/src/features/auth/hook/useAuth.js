@@ -15,7 +15,9 @@ export const useAuth = () => {
     try {
       dispatch(setLoading(true));
       dispatch(setError(null));
-      const data = await register({
+      // Registering doesn't sign the user in (no cookie is set), so leave the
+      // auth user untouched — the page sends them to /login next.
+      await register({
         email,
         password,
         name: {
@@ -25,7 +27,6 @@ export const useAuth = () => {
         phone,
         role,
       });
-      dispatch(setUser(data));
       return { success: true };
     } catch (error) {
       const errorMsg =

@@ -80,3 +80,15 @@ export const cartItemParamValidator = [
 
   validate,
 ];
+
+export const verifyOrderValidator = [
+  body('razorpayOrderId').notEmpty().withMessage('Razorpay order id is required'),
+  body('razorpayPaymentId')
+    .notEmpty()
+    .withMessage('Razorpay payment id is required'),
+  body('razorpaySignature')
+    .notEmpty()
+    .withMessage('Razorpay signature is required'),
+
+  validate,
+];

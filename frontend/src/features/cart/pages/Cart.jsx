@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { useSelector } from 'react-redux';
 import {
   FiTrash2,
@@ -19,9 +19,6 @@ import { useRazorpay, RazorpayOrderOptions } from 'react-razorpay';
 /* "Your Bag" — follows the STITCH Google-Stitch design, driven by the */
 /* live cart state from the cart feature.                              */
 /* ------------------------------------------------------------------ */
-
-// Estimate only — real tax is finalised at checkout (matches the design copy).
-const TAX_RATE = 0.18;
 
 const currencySymbols = { INR: '₹', USD: '$', EUR: '€', GBP: '£', JPY: '¥' };
 
@@ -69,6 +66,7 @@ const Cart = () => {
   const { allProducts } = useSelector((state) => state.product);
   const { error, isLoading, Razorpay } = useRazorpay();
   const { user } = useSelector((state) => state.auth);
+  const navigate = useNavigate();
 
   useEffect(() => {
     handleGetCart();
@@ -83,8 +81,6 @@ const Cart = () => {
     0,
   );
   const totalUnits = validItems.reduce((sum, item) => sum + item.quantity, 0);
-  const tax = Math.round(subtotal * TAX_RATE);
-  const total = subtotal + tax;
 
   // Storefront suggestions — real products not already in the bag.
   const cartProductIds = new Set(
@@ -111,17 +107,23 @@ const Cart = () => {
       description: 'Cart Order Checkout',
       order_id: order.id,
       handler: async function (response) {
-        const isValid = await handleVerifyCartOrder(response);
-        if (isValid) {
-          navigate(`/order-success?orderId=${response?.razorpay_order_id}`);
+        const result = await handleVerifyCartOrder({
+          razorpayOrderId: response.razorpay_order_id,
+          razorpayPaymentId: response.razorpay_payment_id,
+          razorpaySignature: response.razorpay_signature,
+        });
+        if (result.success) {
+          // The backend empties the cart once the payment is verified.
+          await handleGetCart();
+          navigate(`/order-success?orderId=${response.razorpay_order_id}`);
         }
-
-        await handleClearCart();
       },
       prefill: {
-        name: user.name,
+        name: [user.name?.firstName, user.name?.lastName]
+          .filter(Boolean)
+          .join(' '),
         email: user.email,
-        contact: user.phoneNumber,
+        contact: user.phone,
       },
       theme: {
         color: '#e5fe02',
@@ -355,17 +357,11 @@ const Cart = () => {
                       Free
                     </span>
                   </div>
-                  <div className="flex justify-between text-base">
-                    <span className="uppercase text-muted">Estimated Tax</span>
-                    <span className="text-paper">
-                      {formatMoney(tax, currency)}
-                    </span>
-                  </div>
                 </div>
                 <div className="flex items-center justify-between border-t border-line pt-4">
                   <span className="font-display text-2xl uppercase">Total</span>
                   <span className="font-display text-3xl font-bold text-accent">
-                    {formatMoney(total, currency)}
+                    {formatMoney(subtotal, currency)}
                   </span>
                 </div>
                 <button

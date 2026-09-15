@@ -14,22 +14,19 @@ const labelCaps =
 const Product = () => {
   const { productId } = useParams();
   const { handleGetProductById, handleGetAllProducts } = useProduct();
-  const { allProducts, isLoading } = useSelector((state) => state.product);
+  const { allProducts } = useSelector((state) => state.product);
   const [product, setProduct] = useState(null);
   const [selectedVariant, setSelectedVariant] = useState(null);
+  // Local flag — the slice's `loading` is shared with the related-products fetch.
+  const [loading, setLoading] = useState(true);
 
   const fetchProductData = async () => {
-    try {
-      const response = await handleGetProductById(productId);
-      if (response && response.product) {
-        setProduct(response.product);
-        if (response.product.variants && response.product.variants.length > 0) {
-          setSelectedVariant(response.product.variants[0]);
-        }
-      }
-    } catch (error) {
-      console.log(error);
-    }
+    setLoading(true);
+    const response = await handleGetProductById(productId);
+    setProduct(response?.product || null);
+    // Always reset, so a product without variants never keeps the previous one's.
+    setSelectedVariant(response?.product?.variants?.[0] || null);
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -49,7 +46,7 @@ const Product = () => {
       ? selectedVariant.images
       : product?.images;
 
-  if (isLoading && !product) {
+  if (loading && !product) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-ink font-body text-paper">
         <div className="flex flex-col items-center gap-4">
@@ -106,7 +103,9 @@ const Product = () => {
 
           {/* Info Component */}
           <div className="lg:col-span-6">
+            {/* Keyed so quantity/tab/feedback reset when switching products. */}
             <ProductInfo
+              key={product._id}
               product={product}
               selectedVariant={selectedVariant}
               onSelectVariant={setSelectedVariant}

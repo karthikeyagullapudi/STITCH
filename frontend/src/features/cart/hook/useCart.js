@@ -115,7 +115,7 @@ export const useCart = () => {
         razorpayPaymentId,
         razorpaySignature,
       });
-      return { success: true, order: data?.order };
+      return { success: true, payment: data?.payment };
     } catch (error) {
       const errorMsg = readError(error, 'Failed to verify order');
       dispatch(setError(errorMsg));

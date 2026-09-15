@@ -8,7 +8,8 @@ const razorpay = new Razorpay({
 
 export const createOrder = async (amount, currency = 'INR') => {
   const options = {
-    amount: amount * 100,
+    // Razorpay expects an integer amount in the smallest currency unit.
+    amount: Math.round(amount * 100),
     currency: currency,
   };
 

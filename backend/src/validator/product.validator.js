@@ -226,19 +226,6 @@ export const createProductValidator = [
       assertVariantList(variants, { reservedSkus: [req.body.sku] }),
     ),
 
-  body('sizes')
-    .optional({ values: 'falsy' })
-    .customSanitizer(parseToArray)
-    .custom((sizes) => {
-      if (!Array.isArray(sizes)) throw new Error('Sizes must be an array');
-      sizes.forEach((size) => {
-        if (!SIZES.includes(String(size).trim().toUpperCase())) {
-          throw new Error(`Size must be one of: ${SIZES.join(', ')}`);
-        }
-      });
-      return true;
-    }),
-
   body('colorways')
     .optional({ values: 'falsy' })
     .customSanitizer(parseToArray)

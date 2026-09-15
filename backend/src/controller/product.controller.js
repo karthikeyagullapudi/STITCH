@@ -46,6 +46,19 @@ const buildUniqueSlug = async (base) => {
   return exists ? `${root}-${Date.now().toString(36)}` : root;
 };
 
+// Upload a single multer file to ImageKit and shape it for the schema.
+const uploadImage = async (file) => {
+  const uploaded = await uploadFile({
+    buffer: file.buffer,
+    fileName: file.originalname,
+  });
+  return {
+    url: uploaded.fileUrl,
+    fileId: uploaded.fileId,
+    alt: file.originalname,
+  };
+};
+
 /* ------------------------------------------------------------------ */
 /* Controllers                                                         */
 /* ------------------------------------------------------------------ */
@@ -64,7 +77,6 @@ export const createProduct = async (req, res) => {
       sku,
       stock,
       trackQuantity,
-      sizes,
       colorways,
       category,
       collection,
@@ -89,19 +101,6 @@ export const createProduct = async (req, res) => {
         message: 'At least one product image is required',
       });
     }
-
-    // Upload a single multer file to ImageKit and shape it for the schema.
-    const uploadImage = async (file) => {
-      const uploaded = await uploadFile({
-        buffer: file.buffer,
-        fileName: file.originalname,
-      });
-      return {
-        url: uploaded.fileUrl,
-        fileId: uploaded.fileId,
-        alt: file.originalname || title,
-      };
-    };
 
     // Upload every product image to ImageKit in parallel.
     const images = await Promise.all(productFiles.map(uploadImage));
@@ -213,7 +212,6 @@ export const createProduct = async (req, res) => {
       sku: sku ? String(sku).trim() : undefined,
       stock: finalStock,
       trackQuantity: toBool(trackQuantity, true),
-      sizes: parseList(sizes),
       colorways: parsedColorways,
       variants: parsedVariants,
       gender: gender || 'unisex',
@@ -302,7 +300,10 @@ export const getAllProducts = async (req, res) => {
 export const getProductById = async (req, res) => {
   try {
     const { productId } = req.params;
-    const product = await productModel.findById(productId).lean();
+    // Storefront should only ever see published products.
+    const product = await productModel
+      .findOne({ _id: productId, status: 'active' })
+      .lean();
     if (!product) {
       return res.status(404).json({
         success: false,
@@ -326,6 +327,7 @@ export const getProductById = async (req, res) => {
 export const addProductVariants = async (req, res) => {
   try {
     const { productId } = req.params;
+    const { variants } = req.body;
     const product = await productModel.findOne({
       _id: productId,
       admin: req.user._id,
@@ -336,29 +338,53 @@ export const addProductVariants = async (req, res) => {
         message: 'product not found',
       });
     }
-    // files
-    const files = req.files;
-    const images = [];
-    if (files || files.length !== 0) {
-      await Promise.all(
-        files.map(async (file) => {
-          const image = await uploadFile({
-            buffer: file.buffer,
-            fileName: file.originalname,
-          });
-          return image;
-        }),
-      ).map((image) => {
-        images.push(image);
+
+    // A size + colourway combination can only exist once per product.
+    const variantKey = (v) =>
+      `${String(v.size).toUpperCase()}::${v.colorway?.name?.trim().toLowerCase()}`;
+    const existingKeys = new Set(product.variants.map(variantKey));
+    const duplicate = variants.find((v) => existingKeys.has(variantKey(v)));
+    if (duplicate) {
+      return res.status(409).json({
+        success: false,
+        message: `A variant for size ${duplicate.size} in ${duplicate.colorway.name} already exists`,
       });
     }
 
-    console.log(req.body);
-    console.log(images);
+    // Uploaded images apply to every variant added in this request.
+    const images = await Promise.all((req.files || []).map(uploadImage));
+
+    product.variants.push(
+      ...variants.map((v) => ({
+        ...v,
+        stock: Number(v.stock) || 0,
+        images: [...(v.images || []), ...images],
+      })),
+    );
+    product.stock = product.variants.reduce(
+      (sum, v) => sum + (v.stock || 0),
+      0,
+    );
+    await product.save();
+
+    return res.status(201).json({
+      success: true,
+      message: 'Variants added successfully',
+      product,
+    });
   } catch (error) {
+    if (error?.name === 'ValidationError') {
+      return res.status(400).json({
+        success: false,
+        message: Object.values(error.errors)
+          .map((e) => e.message)
+          .join(', '),
+      });
+    }
+    console.error('addProductVariants error:', error);
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: 'Failed to add variants',
     });
   }
 };

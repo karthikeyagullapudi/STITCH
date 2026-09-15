@@ -1,12 +1,14 @@
 import { Link } from 'react-router';
+import { useSelector } from 'react-redux';
 import { FiHeart, FiX, FiChevronDown } from 'react-icons/fi';
 import Header from '../../products/components/Header.jsx';
+import { useWishlist } from '../hook/useWishlist.js';
+import { useCart } from '../../cart/hook/useCart.js';
 
 /* ------------------------------------------------------------------ */
-/* "Wishlist" — follows the STITCH Google-Stitch design.               */
-/* Static/presentational only: the saved items below are hard-coded    */
-/* placeholders. Wire to the wishlist API + slice when the backend     */
-/* routes land.                                                        */
+/* "Wishlist" — follows the STITCH Google-Stitch design, driven by the */
+/* live wishlist state. Filters, sort, Clear All, Notify Me and the    */
+/* recommendations are still presentational.                           */
 /* ------------------------------------------------------------------ */
 
 const labelCaps =
@@ -14,51 +16,15 @@ const labelCaps =
 
 const formatMoney = (amount) => `₹${Number(amount).toLocaleString('en-IN')}`;
 
-// Local assets only — no external image host to go down on us.
-const savedItems = [
-  {
-    id: 'aegis-shell-jacket',
-    category: 'Outerwear',
-    title: 'Aegis Shell Jacket',
-    price: 12450,
-    image: '/images/collection/parka.jpg',
-    size: 'M',
-    colorway: { name: 'Onyx', hex: '#111111' },
-    inStock: true,
-  },
-  {
-    id: 'vanguard-cargo',
-    category: 'Bottoms',
-    title: 'Vanguard Cargo',
-    price: 5980,
-    compareAtPrice: 7480,
-    image: '/images/products/cargo.jpg',
-    size: 'L',
-    colorway: { name: 'Olive', hex: '#3b3f2b' },
-    inStock: true,
-  },
-  {
-    id: 'nightshade-anorak',
-    category: 'Outerwear',
-    title: 'Nightshade Anorak',
-    price: 9320,
-    image: '/images/collection/onyx.jpg',
-    size: 'S',
-    colorway: { name: 'Void', hex: '#0a0a0a' },
-    inStock: false,
-  },
-  {
-    id: 'tactical-sling',
-    category: 'Accessories',
-    title: 'Tactical Sling',
-    price: 3145,
-    image: '/images/collection/sling.jpg',
-    size: 'OS',
-    colorway: { name: 'Ash', hex: '#5f5f5f' },
-    inStock: true,
-  },
-];
+// Prefer the saved variant's price/image/stock, else fall back to the product's.
+const getVariant = (item) =>
+  item.variantId
+    ? item.product.variants?.find(
+        (v) => String(v._id) === String(item.variantId),
+      )
+    : null;
 
+// Local assets only — no external image host to go down on us.
 const recommendations = [
   {
     id: 'kinetic-gloves',
@@ -93,7 +59,40 @@ const recommendations = [
 const filters = ['All', 'In Stock', 'On Sale', 'Sold Out'];
 
 const Wishlist = () => {
+  const { items, handleRemoveWishlistItem, handleMoveToCart } = useWishlist();
+  const { handleGetCart } = useCart();
+  const { errors } = useSelector((state) => state.wishlist);
+
+  // Guard against saved items whose product was removed after being saved.
+  const savedItems = items
+    .filter((item) => item?.product)
+    .map((item) => {
+      const variant = getVariant(item);
+      return {
+        id: item._id,
+        productId: item.product._id,
+        category: item.product.category || 'Apparel',
+        title: item.product.title,
+        price: variant?.price?.amount ?? item.product.price?.amount,
+        compareAtPrice: item.product.compareAtPrice,
+        image:
+          variant?.images?.[0]?.url ||
+          item.product.images?.[0]?.url ||
+          '/placeholder.jpg',
+        size: item.size,
+        colorway: item.colorway,
+        inStock:
+          item.product.status === 'active' &&
+          (variant?.stock ?? item.product.stock) > 0,
+      };
+    });
   const itemCount = savedItems.length;
+
+  const handleMoveToBag = async (itemId) => {
+    const result = await handleMoveToCart(itemId);
+    // Keep the header bag badge in sync.
+    if (result.success) handleGetCart();
+  };
 
   return (
     <div className="min-h-screen bg-ink font-body text-paper">
@@ -156,6 +155,33 @@ const Wishlist = () => {
           </div>
         </div>
 
+        {errors && (
+          <p className="mb-6 border border-red-500/30 bg-red-500/10 px-4 py-3 font-display text-[11px] uppercase tracking-wide text-red-400">
+            {errors}
+          </p>
+        )}
+
+        {itemCount === 0 && (
+          /* Empty state */
+          <div className="flex flex-col items-center justify-center gap-6 border border-line bg-field py-24 text-center">
+            <FiHeart className="h-10 w-10 text-muted" />
+            <div>
+              <h2 className="mb-2 font-display text-2xl font-bold uppercase tracking-tight">
+                Your wishlist is empty
+              </h2>
+              <p className="font-display text-[11px] uppercase tracking-wide text-muted">
+                Tap the heart on any product to save it here.
+              </p>
+            </div>
+            <Link
+              to="/"
+              className="border border-paper px-10 py-4 font-display text-[11px] font-bold uppercase tracking-[0.15em] text-paper transition-all hover:bg-paper hover:text-ink"
+            >
+              Continue Shopping
+            </Link>
+          </div>
+        )}
+
         {/* Saved items */}
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
           {savedItems.map((item) => (
@@ -184,6 +210,9 @@ const Wishlist = () => {
                 <button
                   type="button"
                   aria-label={`Remove ${item.title} from wishlist`}
+                  onClick={() =>
+                    handleRemoveWishlistItem(item.id, item.productId)
+                  }
                   className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center bg-ink/70 text-paper backdrop-blur-sm transition-colors hover:text-red-400"
                 >
                   <FiX className="h-4 w-4" />
@@ -231,25 +260,30 @@ const Wishlist = () => {
 
                 {/* Saved variant */}
                 <div className="mb-4 flex flex-wrap items-center gap-2">
-                  <span
-                    className={`${labelCaps} border border-line px-3 py-1 text-muted`}
-                  >
-                    Size: <span className="text-paper">{item.size}</span>
-                  </span>
-                  <span
-                    className={`${labelCaps} flex items-center gap-1.5 border border-line px-3 py-1 text-muted`}
-                  >
+                  {item.size && (
                     <span
-                      className="h-3 w-3 rounded-full border border-line"
-                      style={{ backgroundColor: item.colorway.hex }}
-                    />
-                    <span className="text-paper">{item.colorway.name}</span>
-                  </span>
+                      className={`${labelCaps} border border-line px-3 py-1 text-muted`}
+                    >
+                      Size: <span className="text-paper">{item.size}</span>
+                    </span>
+                  )}
+                  {item.colorway?.name && (
+                    <span
+                      className={`${labelCaps} flex items-center gap-1.5 border border-line px-3 py-1 text-muted`}
+                    >
+                      <span
+                        className="h-3 w-3 rounded-full border border-line"
+                        style={{ backgroundColor: item.colorway.hex }}
+                      />
+                      <span className="text-paper">{item.colorway.name}</span>
+                    </span>
+                  )}
                 </div>
 
                 {item.inStock ? (
                   <button
                     type="button"
+                    onClick={() => handleMoveToBag(item.id)}
                     className={`${labelCaps} mt-auto w-full rounded-[4px] bg-accent py-4 text-ink transition hover:brightness-110 active:scale-[0.98]`}
                   >
                     Move to Bag

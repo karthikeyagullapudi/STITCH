@@ -59,6 +59,12 @@ export const authAdmin = async (req, res, next) => {
         message: 'Not authorized, user is not an admin',
       });
     }
+    if (!user.adminAproved) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized, admin account is pending approval',
+      });
+    }
     req.user = user;
     next();
   } catch (error) {
