@@ -5,6 +5,13 @@ const productSlice = createSlice({
   initialState: {
     adminProducts: [],
     allProducts: [],
+    // Paging + filter options for the last storefront listing request.
+    productsMeta: {
+      total: 0,
+      page: 1,
+      pages: 1,
+      facets: { categories: [], sizes: [], tags: [] },
+    },
     productdetail: {},
     loading: false,
     errors: null,
@@ -22,10 +29,18 @@ const productSlice = createSlice({
     setAllProducts: (state, action) => {
       state.allProducts = action.payload;
     },
+    setProductsMeta: (state, action) => {
+      state.productsMeta = action.payload;
+    },
   },
 });
 
-export const { setAdminProducts, setAllProducts, setLoading, setError } =
-  productSlice.actions;
+export const {
+  setAdminProducts,
+  setAllProducts,
+  setProductsMeta,
+  setLoading,
+  setError,
+} = productSlice.actions;
 
 export default productSlice.reducer;

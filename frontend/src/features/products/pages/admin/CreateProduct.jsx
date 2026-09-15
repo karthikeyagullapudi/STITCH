@@ -37,6 +37,22 @@ const colorways = [
   { name: 'Wolf', hex: '#4A4A4A', active: false },
 ];
 
+const categoryOptions = [
+  'Accessories',
+  'Activewear',
+  'Coats',
+  'Dresses',
+  'Footwear',
+  'Hoodies',
+  'Jackets',
+  'Jeans',
+  'Shirts',
+  'Shorts',
+  'Skirts',
+  'Sweaters',
+  'T-Shirts',
+];
+
 const MAX_IMAGES = 7;
 const MAX_VARIANT_IMAGES = 5;
 
@@ -48,6 +64,7 @@ const CreateProduct = () => {
   const [form, setForm] = useState({
     title: '',
     description: '',
+    materials: '',
     slug: '',
     price: '',
     compareAtPrice: '',
@@ -57,7 +74,7 @@ const CreateProduct = () => {
     trackQuantity: true,
     status: 'active',
     gender: 'unisex',
-    category: "MEN'S OUTERWEAR",
+    category: '',
     collection: 'SS24 LUNACORE',
     vendor: 'STITCH FACTORY-01',
     sku: '',
@@ -184,6 +201,7 @@ const CreateProduct = () => {
     const formData = new FormData();
     formData.append('title', form.title);
     formData.append('description', form.description);
+    if (form.materials) formData.append('materials', form.materials);
     if (form.slug) formData.append('slug', form.slug);
     formData.append('price', form.price);
     if (form.compareAtPrice)
@@ -388,6 +406,17 @@ const CreateProduct = () => {
                       required
                       rows={6}
                       placeholder="Technical specifications, fabric composition, and sizing notes..."
+                      className={`${inputCls} resize-none`}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Materials & Care</label>
+                    <textarea
+                      name="materials"
+                      value={form.materials}
+                      onChange={handleChange}
+                      rows={3}
+                      placeholder="e.g. 100% recycled nylon shell, taped seams. Machine wash cold."
                       className={`${inputCls} resize-none`}
                     />
                   </div>
@@ -850,15 +879,21 @@ const CreateProduct = () => {
                   </div>
                   <div>
                     <label className={labelCls}>Category</label>
-                    <Select
+                    {/* Free text with suggestions — storefront filters use it as-is. */}
+                    <input
+                      type="text"
                       name="category"
+                      list="category-options"
                       value={form.category}
                       onChange={handleChange}
-                    >
-                      <option>MEN'S OUTERWEAR</option>
-                      <option>WOMEN'S ACCESSORIES</option>
-                      <option>UNISEX CARGO</option>
-                    </Select>
+                      placeholder="e.g. Jackets"
+                      className={inputCls}
+                    />
+                    <datalist id="category-options">
+                      {categoryOptions.map((category) => (
+                        <option key={category} value={category} />
+                      ))}
+                    </datalist>
                   </div>
                   <div>
                     <label className={labelCls}>Collection</label>

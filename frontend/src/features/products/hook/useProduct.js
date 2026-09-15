@@ -3,11 +3,12 @@ import {
   createProducts,
   getAdminProducts,
   getsAllProducts,
-  getProductById,
+  getProductBySlug,
 } from '../service/product.api.js';
 import {
   setAdminProducts,
   setAllProducts,
+  setProductsMeta,
   setLoading,
   setError,
 } from '../state/products.slice.js';
@@ -51,12 +52,20 @@ export const useProduct = () => {
     }
   };
 
-  const handleGetAllProducts = async () => {
+  const handleGetAllProducts = async (params) => {
     try {
       dispatch(setLoading(true));
       dispatch(setError(null));
-      const data = await getsAllProducts();
+      const data = await getsAllProducts(params);
       dispatch(setAllProducts(data?.products));
+      dispatch(
+        setProductsMeta({
+          total: data?.total,
+          page: data?.page,
+          pages: data?.pages,
+          facets: data?.facets,
+        }),
+      );
       return data?.products;
     } catch (error) {
       const errorMsg = error?.message || 'Failed to fetch products';
@@ -68,11 +77,11 @@ export const useProduct = () => {
     }
   };
 
-  const handleGetProductById = async (productId) => {
+  const handleGetProductBySlug = async (slug) => {
     try {
       dispatch(setLoading(true));
       dispatch(setError(null));
-      const data = await getProductById(productId);
+      const data = await getProductBySlug(slug);
       return data;
     } catch (error) {
       const errorMsg = error?.message || 'Failed to fetch product';
@@ -88,6 +97,6 @@ export const useProduct = () => {
     handleCreateProduct,
     handleGetAdminProducts,
     handleGetAllProducts,
-    handleGetProductById,
+    handleGetProductBySlug,
   };
 };

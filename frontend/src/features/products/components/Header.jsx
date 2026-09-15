@@ -7,6 +7,7 @@ import {
   FiMenu,
   FiX,
   FiUser,
+  FiSearch,
 } from 'react-icons/fi';
 import { useCart } from '../../cart/hook/useCart.js';
 import { useWishlist } from '../../wishlist/hook/useWishlist.js';
@@ -24,6 +25,8 @@ const labelCaps =
 
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const location = useLocation();
   const navigate = useNavigate();
   const { handleGetCart } = useCart();
@@ -49,6 +52,13 @@ const Header = () => {
       return location.pathname === '/';
     }
     return location.pathname.startsWith(path);
+  };
+
+  const onSearch = (e) => {
+    e.preventDefault();
+    if (!searchTerm.trim()) return;
+    setSearchOpen(false);
+    navigate(`/collections/all?q=${encodeURIComponent(searchTerm.trim())}`);
   };
 
   const onLogout = async () => {
@@ -90,6 +100,14 @@ const Header = () => {
 
         {/* Right user actions */}
         <div className="flex items-center gap-6">
+          <button
+            type="button"
+            aria-label="Search"
+            onClick={() => setSearchOpen(!searchOpen)}
+            className="text-paper transition-colors hover:text-accent"
+          >
+            <FiSearch className="h-5 w-5" />
+          </button>
           {user?.role === 'admin' && (
             <Link
               to="/admin/products"
@@ -156,6 +174,23 @@ const Header = () => {
           </button>
         </div>
       </div>
+
+      {/* Search bar */}
+      {searchOpen && (
+        <form
+          onSubmit={onSearch}
+          className="border-t border-line bg-surface/95 px-6 py-3 backdrop-blur-md"
+        >
+          <input
+            autoFocus
+            type="search"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search products..."
+            className="mx-auto block w-full max-w-[1440px] bg-transparent font-display text-sm uppercase tracking-wide text-paper outline-none placeholder:text-faint"
+          />
+        </form>
+      )}
 
       {/* Mobile Nav Drawer */}
       {mobileMenuOpen && (

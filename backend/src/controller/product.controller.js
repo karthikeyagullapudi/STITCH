@@ -1,5 +1,6 @@
-import productModel from '../model/product.model.js';
+import productModel, { SIZES } from '../model/product.model.js';
 import { uploadFile } from '../services/storage.services.js';
+import { getPagination, escapeRegex } from '../utils/query.js';
 
 /* ------------------------------------------------------------------ */
 /* Helpers — multipart/form-data delivers everything as strings, so    */
@@ -68,6 +69,7 @@ export const createProduct = async (req, res) => {
     const {
       title,
       description,
+      materials,
       slug,
       price,
       currency,
@@ -200,6 +202,7 @@ export const createProduct = async (req, res) => {
       title,
       slug: await buildUniqueSlug(slug || title),
       description,
+      materials,
       admin: req.user._id,
       images,
       price: {
@@ -274,19 +277,80 @@ export const getAdminProducts = async (req, res) => {
   }
 };
 
+const PRODUCT_SORTS = {
+  newest: { createdAt: -1 },
+  'price-asc': { 'price.amount': 1 },
+  'price-desc': { 'price.amount': -1 },
+};
+
+// Comma-separated query values, e.g. ?size=S,M
+const toList = (value) =>
+  String(value)
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+const exactMatch = (value) => new RegExp(`^${escapeRegex(value)}$`, 'i');
+
 export const getAllProducts = async (req, res) => {
   try {
+    const { q, gender, category, size, tag, collection, sort } = req.query;
+    const { page, limit, skip } = getPagination(req.query, 12);
+
     // Storefront should only ever see published products.
-    const products = await productModel
-      .find({ status: 'active' })
-      .sort({ createdAt: -1 })
-      .lean();
+    const scope = { status: 'active' };
+    if (gender) {
+      // Gender collections include unisex pieces.
+      scope.gender = gender === 'unisex' ? 'unisex' : { $in: [gender, 'unisex'] };
+    }
+    if (collection) scope.collectionName = exactMatch(collection);
+    if (q) {
+      const pattern = new RegExp(escapeRegex(q), 'i');
+      scope.$or = [
+        { title: pattern },
+        { description: pattern },
+        { category: pattern },
+        { tags: pattern },
+      ];
+    }
+
+    // Filters narrow the results, while facets come from the whole scope so
+    // every option stays selectable.
+    const filter = { ...scope };
+    if (category) filter.category = { $in: toList(category).map(exactMatch) };
+    if (size) {
+      filter['variants.size'] = {
+        $in: toList(size).map((s) => s.toUpperCase()),
+      };
+    }
+    if (tag) filter.tags = { $in: toList(tag).map((t) => t.toLowerCase()) };
+
+    const [products, total, categories, sizes, tags] = await Promise.all([
+      productModel
+        .find(filter)
+        .sort(PRODUCT_SORTS[sort] || PRODUCT_SORTS.newest)
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      productModel.countDocuments(filter),
+      productModel.distinct('category', scope),
+      productModel.distinct('variants.size', scope),
+      productModel.distinct('tags', scope),
+    ]);
 
     return res.status(200).json({
       success: true,
       message: 'Products fetched successfully',
       count: products.length,
       products,
+      total,
+      page,
+      pages: Math.max(1, Math.ceil(total / limit)),
+      facets: {
+        categories: categories.filter(Boolean).sort(),
+        sizes: SIZES.filter((s) => sizes.includes(s)),
+        tags: tags.sort(),
+      },
     });
   } catch (error) {
     console.error('getAllProducts error:', error);
@@ -297,12 +361,16 @@ export const getAllProducts = async (req, res) => {
   }
 };
 
-export const getProductById = async (req, res) => {
+export const getProductBySlug = async (req, res) => {
   try {
-    const { productId } = req.params;
+    const { slug } = req.params;
+    // Links use the slug; older links that used the id keep working.
+    const match = /^[a-f\d]{24}$/i.test(slug)
+      ? { $or: [{ slug }, { _id: slug }] }
+      : { slug };
     // Storefront should only ever see published products.
     const product = await productModel
-      .findOne({ _id: productId, status: 'active' })
+      .findOne({ ...match, status: 'active' })
       .lean();
     if (!product) {
       return res.status(404).json({
@@ -316,7 +384,7 @@ export const getProductById = async (req, res) => {
       product,
     });
   } catch (error) {
-    console.error('getProductById error:', error);
+    console.error('getProductBySlug error:', error);
     return res.status(500).json({
       success: false,
       message: 'Failed to fetch product',

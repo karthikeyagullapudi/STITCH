@@ -98,6 +98,10 @@ const productSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    materials: {
+      type: String,
+      trim: true,
+    },
     admin: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'users',
@@ -200,14 +204,6 @@ const productSchema = new mongoose.Schema(
   },
   { timestamps: true },
 );
-
-// Full-text search to back the admin catalogue search box.
-productSchema.index({
-  title: 'text',
-  description: 'text',
-  tags: 'text',
-  sku: 'text',
-});
 
 const productModel = mongoose.model('product', productSchema);
 export default productModel;

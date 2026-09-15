@@ -4,7 +4,7 @@ import {
   createProduct,
   getAdminProducts,
   getAllProducts,
-  getProductById,
+  getProductBySlug,
   addProductVariants,
 } from '../controller/product.controller.js';
 import {
@@ -29,7 +29,7 @@ productRouter.get('/admin/all-products', authAdmin, getAdminProducts);
 
 productRouter.get('/all-products', getAllProducts);
 
-productRouter.get('/product/:productId', getProductById);
+productRouter.get('/product/:slug', getProductBySlug);
 
 productRouter.post(
   '/:productId/variants',

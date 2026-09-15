@@ -1,13 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router';
 import WishlistButton from '../../wishlist/components/WishlistButton.jsx';
-
-const currencySymbols = { INR: '₹', USD: '$', EUR: '€', GBP: '£', JPY: '¥' };
-const formatPrice = (price) => {
-  if (!price) return '';
-  const symbol = currencySymbols[price.currency] || '₹';
-  return `${symbol}${price.amount}`;
-};
+import { formatPrice } from '../../../shared/utils/format.js';
 
 const labelCaps =
   'font-display text-[11px] font-bold uppercase tracking-[0.12em]';
@@ -18,7 +12,7 @@ const ProductCard = ({ product }) => {
   return (
     <div
       onClick={() => {
-        navigate(`/product/${product._id}`);
+        navigate(`/product/${product.slug || product._id}`);
       }}
       className="group flex flex-col border border-transparent bg-panel transition-colors hover:border-accent cursor-pointer"
     >
@@ -45,8 +39,13 @@ const ProductCard = ({ product }) => {
         <h3 className="mb-2 font-display text-lg font-semibold uppercase tracking-tight text-paper truncate">
           {product.title}
         </h3>
-        <p className="font-display text-sm text-accent">
-          {formatPrice(product.price)}
+        <p className="flex items-baseline gap-2 font-display text-sm text-accent">
+          {formatPrice(product.price?.amount, product.price?.currency)}
+          {product.compareAtPrice > product.price?.amount && (
+            <span className="text-xs text-faint line-through">
+              {formatPrice(product.compareAtPrice, product.price?.currency)}
+            </span>
+          )}
         </p>
       </div>
     </div>

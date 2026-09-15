@@ -67,12 +67,12 @@ Everything incomplete or broken across the app, in order of urgency.
 - [ ] `addProductVariants` API works but has no admin UI.
 
 ### Storefront
-- [ ] "Men's Collection" shows every product — filter by gender; "18 items available" is hardcoded.
-- [ ] Collection filters (category / size / technical), sort, search, pagination — backend `getAllProducts` takes no query params; text index unused.
-- [ ] Women's & Accessories collection pages; 404 page.
-- [ ] Landing page is static — hardcoded USD products, dead "Add to Bag", "42 Items", "Shop All", "View Collection", Instagram, newsletter, footer links.
-- [ ] Header search.
-- [ ] Product page: Size Guide, real Materials/Shipping content, show `compareAtPrice`, cap quantity at stock, real related products, slug URLs.
+- [x] "Men's Collection" shows every product — filter by gender; "18 items available" is hardcoded.
+- [x] Collection filters (category / size / technical), sort, search, pagination — backend `getAllProducts` takes no query params; text index unused.
+- [x] Women's & Accessories collection pages; 404 page.
+- [x] Landing page is static — hardcoded USD products, dead "Add to Bag", "42 Items", "Shop All", "View Collection", Instagram, newsletter, footer links.
+- [x] Header search.
+- [x] Product page: Size Guide, real Materials/Shipping content, show `compareAtPrice`, cap quantity at stock, real related products, slug URLs.
 
 ### Wishlist page
 - [ ] Clear All (needs backend endpoint).

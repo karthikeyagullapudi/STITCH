@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router';
+import React, { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router';
 import { useSelector } from 'react-redux';
 import {
   FiDroplet,
@@ -13,6 +13,9 @@ import {
 } from 'react-icons/fi';
 import { useCart } from '../../cart/hook/useCart.js';
 import WishlistButton from '../../wishlist/components/WishlistButton.jsx';
+import SizeGuide from './SizeGuide.jsx';
+import { useSettings } from '../../settings/hook/useSettings.js';
+import { formatPrice as formatAmount } from '../../../shared/utils/format.js';
 
 const labelCaps =
   'font-display text-[11px] font-bold uppercase tracking-[0.12em]';
@@ -22,13 +25,8 @@ const tabs = ['Technical Features', 'Materials', 'Shipping'];
 // Shoppers only see the exact remaining count once stock drops below this.
 const LOW_STOCK_THRESHOLD = 5;
 
-const currencySymbols = { INR: '₹', USD: '$', EUR: '€', GBP: '£', JPY: '¥' };
-
-const formatPrice = (price) => {
-  if (!price) return '';
-  const symbol = currencySymbols[price.currency] || '₹';
-  return `${symbol}${price.amount}`;
-};
+const formatPrice = (price) =>
+  price ? formatAmount(price.amount, price.currency) : '';
 
 const getSpecIcon = (tag) => {
   const t = tag.toLowerCase();
@@ -42,10 +40,21 @@ const ProductInfo = ({ product, selectedVariant, onSelectVariant }) => {
   const [activeTab, setActiveTab] = useState(0);
   const [adding, setAdding] = useState(false);
   const [feedback, setFeedback] = useState(null);
+  const [showSizeGuide, setShowSizeGuide] = useState(false);
+  const [settings, setSettings] = useState(null);
 
   const navigate = useNavigate();
   const user = useSelector((state) => state.auth.user);
   const { handleAddToCart } = useCart();
+  const { handleGetSettings } = useSettings();
+
+  // Shipping copy uses the store's live fee and free-shipping threshold.
+  useEffect(() => {
+    handleGetSettings().then((result) => {
+      if (result.success) setSettings(result.settings);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Size/colour options come from the real variants, and the selected variant
   // is the single source of truth for both.
@@ -81,10 +90,20 @@ const ProductInfo = ({ product, selectedVariant, onSelectVariant }) => {
     ? formatPrice(selectedVariant.price)
     : formatPrice(product?.price);
 
+  const currentAmount =
+    selectedVariant?.price?.amount ?? product?.price?.amount;
+
   const currentSku = selectedVariant?.sku || product?.sku || 'STCH-MASTER';
   const currentStock = selectedVariant?.stock ?? product?.stock ?? 0;
-  const isOutOfStock = currentStock <= 0;
-  const isLowStock = !isOutOfStock && currentStock < LOW_STOCK_THRESHOLD;
+  // Products that don't track quantity can always be bought.
+  const tracksStock = product?.trackQuantity !== false;
+  const isOutOfStock = tracksStock && currentStock <= 0;
+  const isLowStock =
+    tracksStock && !isOutOfStock && currentStock < LOW_STOCK_THRESHOLD;
+  // Never let the chosen quantity exceed what's left of this variant.
+  const orderQuantity = tracksStock
+    ? Math.max(1, Math.min(quantity, currentStock))
+    : quantity;
 
   // Adds the current selection to the bag; resolves to null if nothing was sent.
   const addSelectionToBag = async () => {
@@ -101,7 +120,7 @@ const ProductInfo = ({ product, selectedVariant, onSelectVariant }) => {
       variantId: selectedVariant?._id || null,
       size: selectedSize,
       colorway: selectedColorway || undefined,
-      quantity,
+      quantity: orderQuantity,
     });
     setAdding(false);
     if (!result.success) {
@@ -138,13 +157,11 @@ const ProductInfo = ({ product, selectedVariant, onSelectVariant }) => {
           <p className="font-display text-3xl font-semibold text-accent">
             {currentPrice}
           </p>
-          {selectedVariant?.price?.amount &&
-            product?.price?.amount &&
-            selectedVariant.price.amount !== product.price.amount && (
-              <span className="font-display text-xs text-muted line-through">
-                {formatPrice(product.price)}
-              </span>
-            )}
+          {product?.compareAtPrice > currentAmount && (
+            <span className="font-display text-base text-muted line-through">
+              {formatAmount(product.compareAtPrice, product.price?.currency)}
+            </span>
+          )}
         </div>
       </div>
 
@@ -212,20 +229,19 @@ const ProductInfo = ({ product, selectedVariant, onSelectVariant }) => {
       </div>
 
       {/* Spec row */}
-      <div className="mb-8 flex flex-wrap gap-6 border-y border-line py-4">
-        {(product?.tags?.length
-          ? product.tags.slice(0, 3)
-          : ['Waterproof', 'Breathable', 'Shield']
-        ).map((tag) => {
-          const Icon = getSpecIcon(tag);
-          return (
-            <div key={tag} className="flex items-center gap-2 text-paper">
-              <Icon className="h-4 w-4 text-muted" />
-              <span className={`${labelCaps} text-[10px]`}>{tag}</span>
-            </div>
-          );
-        })}
-      </div>
+      {product?.tags?.length > 0 && (
+        <div className="mb-8 flex flex-wrap gap-6 border-y border-line py-4">
+          {product.tags.slice(0, 3).map((tag) => {
+            const Icon = getSpecIcon(tag);
+            return (
+              <div key={tag} className="flex items-center gap-2 text-paper">
+                <Icon className="h-4 w-4 text-muted" />
+                <span className={`${labelCaps} text-[10px]`}>{tag}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       <div className="mb-10 space-y-8">
         {/* Size Selection UI */}
@@ -237,6 +253,7 @@ const ProductInfo = ({ product, selectedVariant, onSelectVariant }) => {
               </label>
               <button
                 type="button"
+                onClick={() => setShowSizeGuide(true)}
                 className="font-display text-xs text-muted underline underline-offset-4 transition-colors hover:text-accent"
               >
                 Size Guide
@@ -397,21 +414,22 @@ const ProductInfo = ({ product, selectedVariant, onSelectVariant }) => {
           <div className="flex h-12 w-32 items-center border border-line">
             <button
               type="button"
-              onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+              onClick={() => setQuantity(Math.max(1, orderQuantity - 1))}
               className="flex h-full w-10 items-center justify-center text-lg text-paper transition-colors hover:text-accent"
             >
               –
             </button>
             <input
               type="text"
-              value={String(quantity).padStart(2, '0')}
+              value={String(orderQuantity).padStart(2, '0')}
               readOnly
               className="h-full w-12 border-none bg-transparent text-center font-display text-sm text-paper outline-none"
             />
             <button
               type="button"
-              onClick={() => setQuantity((q) => q + 1)}
-              className="flex h-full w-10 items-center justify-center text-lg text-paper transition-colors hover:text-accent"
+              onClick={() => setQuantity(orderQuantity + 1)}
+              disabled={tracksStock && orderQuantity >= currentStock}
+              className="flex h-full w-10 items-center justify-center text-lg text-paper transition-colors hover:text-accent disabled:cursor-not-allowed disabled:opacity-40"
             >
               +
             </button>
@@ -504,17 +522,28 @@ const ProductInfo = ({ product, selectedVariant, onSelectVariant }) => {
             </div>
           )}
           {activeTab === 1 && (
-            <p className="text-muted leading-relaxed text-sm">
-              STITCH technical garments utilize high-tenacity polymers, breathable membranes, and robust seam tape to ensure longevity and weather protection in demanding environments.
+            <p className="whitespace-pre-line text-muted leading-relaxed text-sm">
+              {product?.materials ||
+                'No material details have been added for this product yet.'}
             </p>
           )}
           {activeTab === 2 && (
             <p className="text-muted leading-relaxed text-sm">
-              Free express shipping on all domestic orders over ₹5,000. Orders are dispatched within 24-48 hours and typically arrive within 3-5 business days.
+              {settings &&
+                `Shipping is ${formatAmount(settings.shippingFee)}, or free on orders over ${formatAmount(settings.freeShippingThreshold)}. `}
+              Orders are dispatched within 1–2 business days and usually
+              arrive within 3–7 business days. Unshipped orders can be
+              cancelled from My Orders for a full refund —{' '}
+              <Link to="/pages/returns" className="text-accent hover:underline">
+                returns policy
+              </Link>
+              .
             </p>
           )}
         </div>
       </div>
+
+      {showSizeGuide && <SizeGuide onClose={() => setShowSizeGuide(false)} />}
     </div>
   );
 };

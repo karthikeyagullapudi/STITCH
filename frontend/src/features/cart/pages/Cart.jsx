@@ -152,7 +152,7 @@ const Cart = () => {
                     className="group flex flex-col gap-4 border border-line bg-field p-4 transition-colors duration-300 hover:border-accent sm:flex-row"
                   >
                     <Link
-                      to={`/product/${item.product._id}`}
+                      to={`/product/${item.product.slug || item.product._id}`}
                       className="h-40 w-full overflow-hidden bg-surface sm:w-32"
                     >
                       <img
@@ -168,7 +168,7 @@ const Cart = () => {
                             {item.product.category || 'Apparel'}
                           </span>
                           <Link
-                            to={`/product/${item.product._id}`}
+                            to={`/product/${item.product.slug || item.product._id}`}
                             className="font-display text-2xl font-semibold uppercase tracking-tight text-paper transition-colors hover:text-accent"
                           >
                             {item.product.title}
@@ -315,7 +315,7 @@ const Cart = () => {
               {suggestions.map((p) => (
                 <div key={p._id} className="group">
                   <div className="relative mb-2 aspect-[3/4] overflow-hidden bg-field">
-                    <Link to={`/product/${p._id}`}>
+                    <Link to={`/product/${p.slug || p._id}`}>
                       <img
                         src={p.images?.[0]?.url || '/placeholder.jpg'}
                         alt={p.title}
@@ -338,7 +338,7 @@ const Cart = () => {
                     {p.category || 'Apparel'}
                   </p>
                   <Link
-                    to={`/product/${p._id}`}
+                    to={`/product/${p.slug || p._id}`}
                     className="font-display text-sm font-bold uppercase tracking-tight text-paper transition-colors hover:text-accent"
                   >
                     {p.title}

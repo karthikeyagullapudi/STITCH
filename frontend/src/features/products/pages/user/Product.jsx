@@ -7,13 +7,14 @@ import ProductGallery from '../../components/ProductGallery.jsx';
 import ProductInfo from '../../components/ProductInfo.jsx';
 import ProductCard from '../../components/ProductCard.jsx';
 import Header from '../../components/Header.jsx';
+import Footer from '../../../../shared/components/Footer.jsx';
 
 const labelCaps =
   'font-display text-[11px] font-bold uppercase tracking-[0.12em]';
 
 const Product = () => {
-  const { productId } = useParams();
-  const { handleGetProductById, handleGetAllProducts } = useProduct();
+  const { slug } = useParams();
+  const { handleGetProductBySlug, handleGetAllProducts } = useProduct();
   const { allProducts } = useSelector((state) => state.product);
   const [product, setProduct] = useState(null);
   const [selectedVariant, setSelectedVariant] = useState(null);
@@ -22,23 +23,25 @@ const Product = () => {
 
   const fetchProductData = async () => {
     setLoading(true);
-    const response = await handleGetProductById(productId);
-    setProduct(response?.product || null);
+    const response = await handleGetProductBySlug(slug);
+    const loaded = response?.product || null;
+    setProduct(loaded);
     // Always reset, so a product without variants never keeps the previous one's.
-    setSelectedVariant(response?.product?.variants?.[0] || null);
+    setSelectedVariant(loaded?.variants?.[0] || null);
     setLoading(false);
+    // Related products come from the same category (one extra to drop itself).
+    if (loaded) {
+      handleGetAllProducts({ category: loaded.category || undefined, limit: 5 });
+    }
   };
 
   useEffect(() => {
     fetchProductData();
-  }, [productId]);
-
-  useEffect(() => {
-    handleGetAllProducts();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug]);
 
   const relatedProducts = allProducts
-    .filter((p) => p._id !== productId)
+    .filter((p) => p._id !== product?._id)
     .slice(0, 4);
 
   const displayImages =
@@ -81,11 +84,20 @@ const Product = () => {
             Home
           </Link>
           <FiChevronRight className="h-3 w-3" />
-          <Link to="/" className="transition-colors hover:text-paper">
+          <Link to="/collections/all" className="transition-colors hover:text-paper">
             Shop
           </Link>
           <FiChevronRight className="h-3 w-3" />
-          <span className="transition-colors hover:text-paper">{product.category || 'Apparel'}</span>
+          {product.category ? (
+            <Link
+              to={`/collections/all?category=${encodeURIComponent(product.category)}`}
+              className="transition-colors hover:text-paper"
+            >
+              {product.category}
+            </Link>
+          ) : (
+            <span>Apparel</span>
+          )}
           <FiChevronRight className="h-3 w-3" />
           <span className="text-paper">{product.title}</span>
         </nav>
@@ -120,7 +132,7 @@ const Product = () => {
               You Might Also Like
             </h2>
             <Link
-              to="/"
+              to="/collections/all"
               className={`${labelCaps} group flex items-center gap-2 text-muted transition-colors hover:text-accent`}
             >
               View Archive
@@ -139,30 +151,7 @@ const Product = () => {
         </section>
       </main>
 
-      {/* Footer */}
-      <footer className="w-full border-t border-line bg-surface">
-        <div className="mx-auto flex max-w-[1440px] flex-col items-center justify-between gap-4 px-6 py-8 md:flex-row">
-          <div className="flex flex-col items-center gap-2 md:items-start">
-            <span className="font-display text-2xl font-bold uppercase tracking-tight text-paper">
-              STITCH
-            </span>
-            <span className="font-display text-[11px] uppercase tracking-wide text-muted">
-              © 2024 STITCH Technical Apparel. All rights reserved.
-            </span>
-          </div>
-          <div className="flex gap-8">
-            {['Shipping', 'Returns', 'Privacy', 'Terms'].map((l) => (
-              <a
-                key={l}
-                href="#"
-                className="font-display text-[11px] uppercase tracking-wide text-muted transition-colors hover:text-accent"
-              >
-                {l}
-              </a>
-            ))}
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };

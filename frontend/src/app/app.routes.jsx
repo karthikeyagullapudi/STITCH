@@ -6,7 +6,7 @@ import CreateProduct from '../features/products/pages/admin/CreateProduct.jsx';
 import LandingPage from '../features/products/pages/user/LandingPage.jsx';
 import Cart from '../features/cart/pages/Cart.jsx';
 import Wishlist from '../features/wishlist/pages/Wishlist.jsx';
-import MensCollection from '../features/products/pages/user/AllProducts.jsx';
+import AllProducts from '../features/products/pages/user/AllProducts.jsx';
 import Product from '../features/products/pages/user/Product.jsx';
 import Protected from '../features/auth/components/Protected.jsx';
 import ForgotPassword from '../features/auth/pages/ForgotPassword.jsx';
@@ -99,11 +99,11 @@ const router = createBrowserRouter([
     ),
   },
   {
-    path: '/collections/mens',
-    element: <MensCollection />,
+    path: '/collections/:collection',
+    element: <AllProducts />,
   },
   {
-    path: '/product/:productId',
+    path: '/product/:slug',
     element: <Product />,
   },
 

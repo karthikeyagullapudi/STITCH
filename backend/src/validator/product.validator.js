@@ -173,6 +173,11 @@ export const createProductValidator = [
     .isString()
     .withMessage('Description must be a string'),
 
+  body('materials')
+    .optional({ values: 'falsy' })
+    .isString()
+    .withMessage('Materials must be a string'),
+
   body('slug')
     .optional({ values: 'falsy' })
     .isString()

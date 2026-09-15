@@ -23,18 +23,19 @@ export const getAdminProducts = async () => {
   }
 };
 
-export const getsAllProducts = async () => {
+// params: { q, gender, category, size, tag, collection, sort, page, limit }
+export const getsAllProducts = async (params) => {
   try {
-    const response = await productApiInstance.get('/all-products');
+    const response = await productApiInstance.get('/all-products', { params });
     return response.data;
   } catch (error) {
     throw error.response?.data || { message: 'Failed to fetch products' };
   }
 };
 
-export const getProductById = async (productId) => {
+export const getProductBySlug = async (slug) => {
   try {
-    const response = await productApiInstance.get(`/product/${productId}`);
+    const response = await productApiInstance.get(`/product/${slug}`);
     return response.data;
   } catch (error) {
     throw error.response?.data || { message: 'Failed to fetch product' };

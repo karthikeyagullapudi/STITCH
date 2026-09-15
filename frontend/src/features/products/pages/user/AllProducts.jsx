@@ -1,27 +1,43 @@
-import { useNavigate } from 'react-router';
 import { useEffect } from 'react';
+import { useParams, useSearchParams } from 'react-router';
 import { useSelector } from 'react-redux';
+import { FiChevronDown, FiX } from 'react-icons/fi';
 import { useProduct } from '../../hook/useProduct.js';
 import Header from '../../components/Header.jsx';
-import WishlistButton from '../../../wishlist/components/WishlistButton.jsx';
-
-const currencySymbols = { INR: '₹', USD: '$', EUR: '€', GBP: '£', JPY: '¥' };
-const formatPrice = (price) => {
-  if (!price) return '';
-  const symbol = currencySymbols[price.currency] || '₹';
-  return `${symbol}${price.amount}`;
-};
+import ProductCard from '../../components/ProductCard.jsx';
+import Footer from '../../../../shared/components/Footer.jsx';
+import Pagination from '../../../../shared/components/Pagination.jsx';
+import NotFound from '../../../../shared/pages/NotFound.jsx';
 
 /* ------------------------------------------------------------------ */
-/* Static STITCH "Men's Collection" storefront listing.               */
-/* Presentational only — wire product data / filters / cart as needed.*/
+/* Storefront listing for /collections/:collection. Filters, sort,     */
+/* search and paging live in the URL so results are shareable.         */
 /* ------------------------------------------------------------------ */
 
-const filters = {
-  category: ['Outerwear', 'Tops', 'Bottoms', 'Footwear'],
-  size: ['XS', 'S', 'M', 'L', 'XL'],
-  technical: ['Waterproof', 'Windproof', 'Breathable'],
+const collections = {
+  all: { title: 'Shop All', subtitle: 'Every drop in the archive.' },
+  mens: {
+    title: "Men's Collection",
+    subtitle: 'Engineered for the fringe.',
+    query: { gender: 'men' },
+  },
+  women: {
+    title: "Women's Collection",
+    subtitle: 'Precision cut for movement.',
+    query: { gender: 'women' },
+  },
+  accessories: {
+    title: 'Accessories',
+    subtitle: 'Carry systems and finishing hardware.',
+    query: { category: 'Accessories' },
+  },
 };
+
+const sorts = [
+  ['newest', 'Newest'],
+  ['price-asc', 'Price: Low to High'],
+  ['price-desc', 'Price: High to Low'],
+];
 
 const groupTitle =
   'mb-4 border-b border-line pb-2 font-display text-[11px] font-bold uppercase tracking-[0.15em] text-muted';
@@ -29,13 +45,52 @@ const checkLabel =
   'flex cursor-pointer items-center gap-2 font-display text-xs uppercase tracking-[0.05em] text-muted transition-colors hover:text-paper';
 
 const AllProducts = () => {
+  const { collection } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { handleGetAllProducts } = useProduct();
-  const { allProducts } = useSelector((state) => state.product);
-  const navigate = useNavigate();
+  const { allProducts, productsMeta, loading } = useSelector(
+    (state) => state.product,
+  );
+  const config = collections[collection];
+  const { facets } = productsMeta;
+  const query = searchParams.toString();
 
   useEffect(() => {
-    handleGetAllProducts();
-  }, []);
+    if (config) {
+      handleGetAllProducts({
+        ...config.query,
+        ...Object.fromEntries(searchParams),
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [collection, query]);
+
+  const selected = (key) => searchParams.get(key)?.split(',') || [];
+
+  // Any filter change sends the shopper back to the first page.
+  const updateParams = (changes) => {
+    const params = new URLSearchParams(searchParams);
+    Object.entries(changes).forEach(([key, value]) =>
+      value ? params.set(key, value) : params.delete(key),
+    );
+    if (!('page' in changes)) params.delete('page');
+    setSearchParams(params);
+  };
+
+  const toggleFilter = (key, value) => {
+    const values = selected(key);
+    const next = values.includes(value)
+      ? values.filter((v) => v !== value)
+      : [...values, value];
+    updateParams({ [key]: next.join(',') });
+  };
+
+  if (!config) return <NotFound />;
+
+  const searchTerm = searchParams.get('q');
+  const hasFilters = ['category', 'size', 'tag'].some((key) =>
+    searchParams.get(key),
+  );
 
   return (
     <div className="min-h-screen bg-ink font-body text-paper">
@@ -43,138 +98,143 @@ const AllProducts = () => {
 
       <main className="mx-auto max-w-[1440px] px-6 pb-16 pt-28">
         {/* Collection header */}
-        <section className="mb-12">
-          <h1 className="mb-2 font-display text-5xl font-bold uppercase tracking-tight md:text-6xl">
-            Men&apos;s Collection
-          </h1>
-          <p className="font-display text-xs uppercase tracking-[0.2em] text-muted">
-            Engineered for the fringe. 18 items available.
-          </p>
+        <section className="mb-12 flex flex-wrap items-end justify-between gap-6">
+          <div>
+            <h1 className="mb-2 font-display text-5xl font-bold uppercase tracking-tight md:text-6xl">
+              {searchTerm ? `“${searchTerm}”` : config.title}
+            </h1>
+            <p className="font-display text-xs uppercase tracking-[0.2em] text-muted">
+              {config.subtitle} {productsMeta.total}{' '}
+              {productsMeta.total === 1 ? 'item' : 'items'} available.
+            </p>
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => updateParams({ q: '' })}
+                className="mt-3 flex items-center gap-1 font-display text-[11px] uppercase tracking-wide text-accent"
+              >
+                <FiX className="h-3 w-3" />
+                Clear search
+              </button>
+            )}
+          </div>
+          <div className="relative">
+            <select
+              value={searchParams.get('sort') || 'newest'}
+              onChange={(e) => updateParams({ sort: e.target.value })}
+              className="appearance-none border border-line bg-field py-2 pl-4 pr-10 font-display text-[11px] font-bold uppercase tracking-[0.12em] text-paper outline-none focus:border-accent"
+            >
+              {sorts.map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            <FiChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+          </div>
         </section>
 
         <div className="flex flex-col gap-10 lg:flex-row">
           {/* Filter sidebar */}
           <aside className="w-full flex-shrink-0 lg:w-60">
             <div className="space-y-8 lg:sticky lg:top-28">
-              {/* Category */}
-              <div>
-                <h3 className={groupTitle}>Category</h3>
-                <div className="flex flex-col gap-2">
-                  {filters.category.map((c) => (
-                    <label key={c} className={checkLabel}>
-                      <input type="checkbox" className="stitch-checkbox" />
-                      {c}
-                    </label>
-                  ))}
+              {/* Category (fixed on the accessories collection) */}
+              {!config.query?.category && facets.categories.length > 0 && (
+                <div>
+                  <h3 className={groupTitle}>Category</h3>
+                  <div className="flex flex-col gap-2">
+                    {facets.categories.map((c) => (
+                      <label key={c} className={checkLabel}>
+                        <input
+                          type="checkbox"
+                          className="stitch-checkbox"
+                          checked={selected('category').includes(c)}
+                          onChange={() => toggleFilter('category', c)}
+                        />
+                        {c}
+                      </label>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {/* Size */}
-              <div>
-                <h3 className={groupTitle}>Size</h3>
-                <div className="grid grid-cols-5 gap-1.5">
-                  {filters.size.map((s) => (
-                    <button
-                      key={s}
-                      type="button"
-                      className="border border-line py-2 font-display text-xs uppercase text-muted transition-colors hover:border-accent hover:text-accent"
-                    >
-                      {s}
-                    </button>
-                  ))}
+              {facets.sizes.length > 0 && (
+                <div>
+                  <h3 className={groupTitle}>Size</h3>
+                  <div className="grid grid-cols-5 gap-1.5">
+                    {facets.sizes.map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => toggleFilter('size', s)}
+                        className={`border py-2 font-display text-xs uppercase transition-colors ${
+                          selected('size').includes(s)
+                            ? 'border-accent text-accent'
+                            : 'border-line text-muted hover:border-accent hover:text-accent'
+                        }`}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {/* Technical */}
-              <div>
-                <h3 className={groupTitle}>Technical</h3>
-                <div className="flex flex-col gap-2">
-                  {filters.technical.map((t) => (
-                    <label key={t} className={checkLabel}>
-                      <input type="checkbox" className="stitch-checkbox" />
-                      {t}
-                    </label>
-                  ))}
+              {facets.tags.length > 0 && (
+                <div>
+                  <h3 className={groupTitle}>Technical</h3>
+                  <div className="flex max-h-64 flex-col gap-2 overflow-y-auto">
+                    {facets.tags.map((t) => (
+                      <label key={t} className={checkLabel}>
+                        <input
+                          type="checkbox"
+                          className="stitch-checkbox"
+                          checked={selected('tag').includes(t)}
+                          onChange={() => toggleFilter('tag', t)}
+                        />
+                        {t}
+                      </label>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {hasFilters && (
+                <button
+                  type="button"
+                  onClick={() => updateParams({ category: '', size: '', tag: '' })}
+                  className="font-display text-[11px] uppercase tracking-wide text-accent"
+                >
+                  Clear filters
+                </button>
+              )}
             </div>
           </aside>
 
           {/* Product grid */}
-          <div className="grid flex-grow grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-            {allProducts.map((p) => (
-              <article
-                onClick={() => {
-                  navigate(`/product/${p._id}`);
-                }}
-                key={p._id}
-                className="group relative overflow-hidden border border-line bg-panel transition-colors hover:border-accent"
-              >
-                <div className="relative aspect-[3/4] overflow-hidden bg-field">
-                  <img
-                    src={p.images?.[0]?.url || '/placeholder.jpg'}
-                    alt={p.title}
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                  <WishlistButton
-                    productId={p._id}
-                    className="absolute left-3 top-3"
-                  />
-                  {p.collectionName && (
-                    <span className="absolute right-3 top-3 bg-accent px-2 py-1 font-display text-[10px] font-bold uppercase tracking-wide text-ink">
-                      {p.collectionName}
-                    </span>
-                  )}
-                </div>
-
-                <div className="p-4">
-                  <div className="mb-1 flex items-start justify-between gap-2">
-                    <h2 className="font-display text-xl font-semibold uppercase tracking-tight text-paper truncate">
-                      {p.title}
-                    </h2>
-                    <span className="shrink-0 font-display text-xl font-semibold text-accent">
-                      {formatPrice(p.price)}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-muted">
-                    <span className="font-display text-[11px] uppercase tracking-wide">
-                      SKU: {p.sku || 'N/A'}
-                    </span>
-                    <span className="font-display text-[11px] uppercase tracking-wide">
-                      {p.category || 'Uncategorized'}
-                    </span>
-                  </div>
-                </div>
-              </article>
-            ))}
+          <div className="flex-grow">
+            {!loading && allProducts.length === 0 && (
+              <p className="border border-line bg-field py-24 text-center font-display text-xs uppercase tracking-[0.12em] text-muted">
+                No products match these filters.
+              </p>
+            )}
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+              {allProducts.map((p) => (
+                <ProductCard key={p._id} product={p} />
+              ))}
+            </div>
+            <div className="mt-10 flex justify-center">
+              <Pagination
+                page={productsMeta.page}
+                pages={productsMeta.pages}
+                onChange={(page) => updateParams({ page: String(page) })}
+              />
+            </div>
           </div>
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="mt-16 w-full border-t border-line bg-surface">
-        <div className="mx-auto flex max-w-[1440px] flex-col items-center justify-between gap-4 px-6 py-8 md:flex-row">
-          <div className="flex flex-col gap-2 text-center md:text-left">
-            <span className="font-display text-2xl font-bold uppercase tracking-tight text-paper">
-              STITCH
-            </span>
-            <p className="font-display text-[11px] uppercase tracking-wide text-muted">
-              © 2024 STITCH Technical Apparel. All rights reserved.
-            </p>
-          </div>
-          <div className="flex gap-8">
-            {['Shipping', 'Returns', 'Privacy', 'Terms'].map((l) => (
-              <a
-                key={l}
-                href="#"
-                className="font-display text-[11px] uppercase tracking-wide text-muted transition-colors hover:text-accent"
-              >
-                {l}
-              </a>
-            ))}
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };

@@ -1,46 +1,16 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
-import {
-  FiArrowUpRight,
-  FiAtSign,
-  FiShare2,
-  FiGlobe,
-  FiRss,
-} from 'react-icons/fi';
+import { useSelector } from 'react-redux';
+import { FiArrowUpRight, FiAtSign } from 'react-icons/fi';
 import Header from '../../components/Header.jsx';
+import ProductCard from '../../components/ProductCard.jsx';
+import { useProduct } from '../../hook/useProduct.js';
+import { useNewsletter } from '../../../newsletter/hook/useNewsletter.js';
+import { formatPrice } from '../../../../shared/utils/format.js';
 
 /* ------------------------------------------------------------------ */
-/* Static STITCH landing page (SS23). Presentational only —           */
-/* wire up cart / data / handlers as needed.                          */
+/* STITCH landing page — editorial sections around the newest drops.  */
 /* ------------------------------------------------------------------ */
-
-const newArrivals = [
-  {
-    img: 'na-parka',
-    cat: 'Outerwear',
-    name: 'Stealth Parka Gen-2',
-    price: '$540.00',
-    badge: true,
-  },
-  {
-    img: 'na-pullover',
-    cat: 'Mid-Layer',
-    name: 'Aero-Shell Pullover',
-    price: '$225.00',
-    featured: true,
-  },
-  {
-    img: 'na-cargo',
-    cat: 'Trousers',
-    name: 'Cargo System Pants',
-    price: '$310.00',
-  },
-  {
-    img: 'na-backpack',
-    cat: 'Accessories',
-    name: 'Nexus 20L Backpack',
-    price: '$195.00',
-  },
-];
 
 const categories = [
   {
@@ -65,15 +35,55 @@ const instagram = ['ig-1', 'ig-2', 'ig-3', 'ig-4', 'ig-5'];
 const footerCols = [
   {
     title: 'Shop',
-    links: ['New Arrivals', 'Outerwear', 'Trousers', 'Accessories'],
+    links: [
+      ['New Arrivals', '/collections/all'],
+      ['Men', '/collections/mens'],
+      ['Women', '/collections/women'],
+      ['Accessories', '/collections/accessories'],
+    ],
   },
-  { title: 'Support', links: ['Shipping', 'Returns', 'Contact', 'Stores'] },
+  {
+    title: 'Support',
+    links: [
+      ['Shipping', '/pages/shipping'],
+      ['Returns', '/pages/returns'],
+      ['Contact', '/pages/contact'],
+      ['Stores', '/pages/stores'],
+    ],
+  },
+];
+
+const legalLinks = [
+  ['Privacy', '/pages/privacy'],
+  ['Terms', '/pages/terms'],
+  ['Accessibility', '/pages/accessibility'],
 ];
 
 const labelCaps =
   'font-display text-[11px] font-bold uppercase tracking-[0.12em]';
 
 const LandingPage = () => {
+  const { handleGetAllProducts } = useProduct();
+  const { handleSubscribe } = useNewsletter();
+  const { allProducts, productsMeta } = useSelector((state) => state.product);
+  const [email, setEmail] = useState('');
+  const [newsletterResult, setNewsletterResult] = useState(null);
+
+  useEffect(() => {
+    handleGetAllProducts({ sort: 'newest', limit: 4 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const newArrivals = allProducts.slice(0, 4);
+  const featured = newArrivals[0];
+
+  const onSubscribe = async (e) => {
+    e.preventDefault();
+    const result = await handleSubscribe(email);
+    setNewsletterResult(result);
+    if (result.success) setEmail('');
+  };
+
   return (
     <div className="min-h-screen bg-ink font-body text-paper">
       <Header />
@@ -103,26 +113,30 @@ const LandingPage = () => {
               </p>
             </div>
 
-            {/* Floating product chip */}
-            <div className="absolute bottom-16 right-6 hidden border border-line bg-surface p-2 backdrop-blur-sm md:block">
-              <div className="flex items-center gap-4">
-                <img
-                  src="/images/landing/chip.jpg"
-                  alt="S-04 Modular Rig"
-                  className="h-16 w-16 object-cover"
-                />
-                <div>
-                  <p className={`${labelCaps} text-paper`}>S-04 Modular Rig</p>
-                  <p className="font-display text-sm text-accent">$189.00</p>
+            {/* Floating product chip — the newest drop */}
+            {featured && (
+              <div className="absolute bottom-16 right-6 hidden border border-line bg-surface p-2 backdrop-blur-sm md:block">
+                <div className="flex items-center gap-4">
+                  <img
+                    src={featured.images?.[0]?.url || '/placeholder.jpg'}
+                    alt={featured.title}
+                    className="h-16 w-16 object-cover"
+                  />
+                  <div>
+                    <p className={`${labelCaps} text-paper`}>{featured.title}</p>
+                    <p className="font-display text-sm text-accent">
+                      {formatPrice(featured.price?.amount, featured.price?.currency)}
+                    </p>
+                  </div>
+                  <Link
+                    to={`/product/${featured.slug || featured._id}`}
+                    className={`${labelCaps} bg-accent px-4 py-2 text-[10px] text-ink transition-transform hover:scale-105 active:scale-95`}
+                  >
+                    Shop Now
+                  </Link>
                 </div>
-                <button
-                  type="button"
-                  className={`${labelCaps} bg-accent px-4 py-2 text-[10px] text-ink transition-transform hover:scale-105 active:scale-95`}
-                >
-                  Add to Bag
-                </button>
               </div>
-            </div>
+            )}
           </div>
         </section>
 
@@ -134,50 +148,20 @@ const LandingPage = () => {
                 New Arrivals
               </h2>
               <span className="font-display text-lg text-muted">
-                / 42 Items
+                / {productsMeta.total} Items
               </span>
             </div>
-            <a
-              href="#"
+            <Link
+              to="/collections/all"
               className={`${labelCaps} border border-paper px-6 py-2.5 text-paper transition-all hover:bg-paper hover:text-ink`}
             >
               Shop All
-            </a>
+            </Link>
           </div>
 
           <div className="grid grid-cols-2 gap-6 md:grid-cols-4 lg:gap-8">
-            {newArrivals.map((p) => (
-              <div key={p.name} className="group cursor-pointer">
-                <div className="relative mb-3 aspect-[3/4] overflow-hidden border border-transparent bg-field transition-all group-hover:border-accent">
-                  <img
-                    src={`/images/landing/${p.img}.jpg`}
-                    alt={p.name}
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                  {p.badge && (
-                    <span
-                      className={`${labelCaps} absolute left-2 top-2 bg-accent px-2 py-1 text-[10px] text-ink`}
-                    >
-                      New
-                    </span>
-                  )}
-                  {p.featured && (
-                    <div className="absolute bottom-0 left-0 w-full translate-y-2 p-2 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
-                      <button
-                        type="button"
-                        className={`${labelCaps} w-full bg-accent py-3 text-ink active:scale-95`}
-                      >
-                        Add to Bag
-                      </button>
-                    </div>
-                  )}
-                </div>
-                <p className={`${labelCaps} mb-1 text-muted`}>{p.cat}</p>
-                <h3 className="mb-1 font-display text-lg font-semibold uppercase text-paper">
-                  {p.name}
-                </h3>
-                <p className="font-display text-sm text-paper">{p.price}</p>
-              </div>
+            {newArrivals.map((product) => (
+              <ProductCard key={product._id} product={product} />
             ))}
           </div>
         </section>
@@ -225,12 +209,12 @@ const LandingPage = () => {
                   with avant-garde lunar aesthetics.
                 </p>
               </div>
-              <a
-                href="#"
+              <Link
+                to={`/collections/all?collection=${encodeURIComponent('SS24 LUNACORE')}`}
                 className={`${labelCaps} border-2 border-paper px-10 py-3.5 text-paper transition-all hover:bg-paper hover:text-ink`}
               >
                 View Collection
-              </a>
+              </Link>
             </div>
             <div className="order-1 md:order-2">
               <img
@@ -252,17 +236,13 @@ const LandingPage = () => {
           </div>
           <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
             {instagram.map((ig) => (
-              <a
-                key={ig}
-                href="#"
-                className="group aspect-square overflow-hidden"
-              >
+              <div key={ig} className="group aspect-square overflow-hidden">
                 <img
                   src={`/images/landing/${ig}.jpg`}
                   alt="STITCH on Instagram"
                   className="h-full w-full object-cover grayscale transition-all duration-500 group-hover:scale-105 group-hover:grayscale-0"
                 />
-              </a>
+              </div>
             ))}
           </div>
         </section>
@@ -279,31 +259,20 @@ const LandingPage = () => {
               Technical apparel designed for the modern nomad. Fusing Japanese
               structuralism with high-performance utility.
             </p>
-            <div className="mt-2 flex gap-4">
-              {[FiShare2, FiGlobe, FiRss].map((Icon, i) => (
-                <a
-                  key={i}
-                  href="#"
-                  className="text-muted transition-colors hover:text-accent"
-                >
-                  <Icon className="h-5 w-5" />
-                </a>
-              ))}
-            </div>
           </div>
 
           {footerCols.map((col) => (
             <div key={col.title}>
               <h4 className={`${labelCaps} mb-6 text-paper`}>{col.title}</h4>
               <ul className="flex flex-col gap-3">
-                {col.links.map((l) => (
-                  <li key={l}>
-                    <a
-                      href="#"
+                {col.links.map(([label, to]) => (
+                  <li key={label}>
+                    <Link
+                      to={to}
                       className={`${labelCaps} text-muted transition-colors hover:text-accent`}
                     >
-                      {l}
-                    </a>
+                      {label}
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -315,35 +284,50 @@ const LandingPage = () => {
             <p className="mb-4 text-sm text-muted">
               Join the collective for early access and tactical updates.
             </p>
-            <div className="flex border border-line focus-within:border-accent">
+            <form
+              onSubmit={onSubscribe}
+              className="flex border border-line focus-within:border-accent"
+            >
               <input
                 type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 placeholder="EMAIL ADDRESS"
                 className="w-full bg-panel px-3 py-2.5 font-display text-xs uppercase tracking-wide text-paper outline-none placeholder:text-faint"
               />
               <button
-                type="button"
+                type="submit"
                 className={`${labelCaps} bg-paper px-4 text-ink transition-colors hover:bg-accent`}
               >
                 Join
               </button>
-            </div>
+            </form>
+            {newsletterResult && (
+              <p
+                className={`mt-2 font-display text-[11px] uppercase tracking-wide ${
+                  newsletterResult.success ? 'text-emerald-400' : 'text-red-400'
+                }`}
+              >
+                {newsletterResult.message || newsletterResult.error}
+              </p>
+            )}
           </div>
         </div>
 
         <div className="mx-auto mt-16 flex max-w-[1440px] flex-col justify-between gap-4 border-t border-line px-6 pt-8 md:flex-row">
           <p className="font-display text-[10px] uppercase tracking-wide text-muted">
-            © 2023 STITCH Techwear. All rights reserved.
+            © {new Date().getFullYear()} STITCH Techwear. All rights reserved.
           </p>
           <div className="flex gap-8">
-            {['Privacy', 'Terms', 'Accessibility'].map((l) => (
-              <a
-                key={l}
-                href="#"
+            {legalLinks.map(([label, to]) => (
+              <Link
+                key={label}
+                to={to}
                 className="font-display text-[10px] uppercase tracking-wide text-muted hover:text-accent"
               >
-                {l}
-              </a>
+                {label}
+              </Link>
             ))}
           </div>
         </div>
