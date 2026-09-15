@@ -30,6 +30,11 @@ const wishlistItemSchema = new mongoose.Schema(
       type: wishlistColorwaySchema,
       default: undefined,
     },
+    // Email the shopper once this item is back in stock.
+    notifyMe: {
+      type: Boolean,
+      default: false,
+    },
   },
   { _id: true, timestamps: true },
 );

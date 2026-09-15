@@ -14,6 +14,7 @@ import {
   getWishlist,
   getWishlistProduct,
   moveToCart,
+  clearWishlist,
 } from '../controller/wishlist.controller.js';
 
 const router = Router();
@@ -36,6 +37,9 @@ router.delete(
   wishlistItemParamValidator,
   removeWishlistItem,
 );
+
+// Clear wishlist
+router.delete('/clear', protect, clearWishlist);
 
 // Get wishlist
 router.get('/', protect, getWishlist);

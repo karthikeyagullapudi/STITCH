@@ -1,14 +1,16 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { useSelector } from 'react-redux';
-import { FiHeart, FiX, FiChevronDown } from 'react-icons/fi';
+import { FiHeart, FiX, FiChevronDown, FiBell } from 'react-icons/fi';
 import Header from '../../products/components/Header.jsx';
+import ProductCard from '../../products/components/ProductCard.jsx';
 import { useWishlist } from '../hook/useWishlist.js';
 import { useCart } from '../../cart/hook/useCart.js';
+import { useProduct } from '../../products/hook/useProduct.js';
 
 /* ------------------------------------------------------------------ */
 /* "Wishlist" — follows the STITCH Google-Stitch design, driven by the */
-/* live wishlist state. Filters, sort, Clear All, Notify Me and the    */
-/* recommendations are still presentational.                           */
+/* live wishlist state.                                                */
 /* ------------------------------------------------------------------ */
 
 const labelCaps =
@@ -24,74 +26,95 @@ const getVariant = (item) =>
       )
     : null;
 
-// Local assets only — no external image host to go down on us.
-const recommendations = [
-  {
-    id: 'kinetic-gloves',
-    category: 'Accessories',
-    title: 'Kinetic Gloves',
-    price: 2085,
-    image: '/images/collection/striker.jpg',
-  },
-  {
-    id: 'base-tee-01',
-    category: 'Tops',
-    title: 'Base Tee 01',
-    price: 2110,
-    image: '/images/cart/tee.jpg',
-  },
-  {
-    id: 'tread-x-1',
-    category: 'Footwear',
-    title: 'Tread X-1',
-    price: 8390,
-    image: '/images/collection/boot.jpg',
-  },
-  {
-    id: 'cobra-belt',
-    category: 'Accessories',
-    title: 'Cobra Belt',
-    price: 1995,
-    image: '/images/cart/belt.jpg',
-  },
-];
+const filters = {
+  All: () => true,
+  'In Stock': (item) => item.inStock,
+  'On Sale': (item) => item.onSale,
+  'Sold Out': (item) => !item.inStock,
+};
 
-const filters = ['All', 'In Stock', 'On Sale', 'Sold Out'];
+const sorters = {
+  recent: (a, b) => new Date(b.addedAt) - new Date(a.addedAt),
+  'price-desc': (a, b) => b.price - a.price,
+  'price-asc': (a, b) => a.price - b.price,
+};
 
 const Wishlist = () => {
-  const { items, handleRemoveWishlistItem, handleMoveToCart } = useWishlist();
+  const {
+    items,
+    handleRemoveWishlistItem,
+    handleMoveToCart,
+    handleToggleNotify,
+    handleClearWishlist,
+  } = useWishlist();
   const { handleGetCart } = useCart();
+  const { handleGetAllProducts } = useProduct();
   const { errors } = useSelector((state) => state.wishlist);
+  const { allProducts } = useSelector((state) => state.product);
+  const [filter, setFilter] = useState('All');
+  const [sort, setSort] = useState('recent');
+  const [notice, setNotice] = useState(null);
+
+  useEffect(() => {
+    handleGetAllProducts({ limit: 12 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Guard against saved items whose product was removed after being saved.
   const savedItems = items
     .filter((item) => item?.product)
     .map((item) => {
       const variant = getVariant(item);
+      const price = variant?.price?.amount ?? item.product.price?.amount;
+      const stock = variant?.stock ?? item.product.stock;
       return {
         id: item._id,
         productId: item.product._id,
+        slug: item.product.slug || item.product._id,
         category: item.product.category || 'Apparel',
         title: item.product.title,
-        price: variant?.price?.amount ?? item.product.price?.amount,
+        price,
         compareAtPrice: item.product.compareAtPrice,
+        onSale: item.product.compareAtPrice > price,
         image:
           variant?.images?.[0]?.url ||
           item.product.images?.[0]?.url ||
           '/placeholder.jpg',
         size: item.size,
         colorway: item.colorway,
+        notifyMe: item.notifyMe,
+        addedAt: item.createdAt,
         inStock:
           item.product.status === 'active' &&
-          (variant?.stock ?? item.product.stock) > 0,
+          (item.product.trackQuantity === false || stock > 0),
       };
     });
   const itemCount = savedItems.length;
+  const visibleItems = savedItems
+    .filter(filters[filter])
+    .sort(sorters[sort]);
+
+  // Real products the shopper hasn't saved yet.
+  const savedIds = new Set(savedItems.map((item) => item.productId));
+  const recommendations = allProducts
+    .filter((product) => !savedIds.has(product._id))
+    .slice(0, 4);
 
   const handleMoveToBag = async (itemId) => {
     const result = await handleMoveToCart(itemId);
     // Keep the header bag badge in sync.
     if (result.success) handleGetCart();
+  };
+
+  const onToggleNotify = async (item) => {
+    const result = await handleToggleNotify(item.id, !item.notifyMe);
+    setNotice(result.success ? result.message : null);
+  };
+
+  const onClearAll = () => {
+    if (window.confirm('Remove every item from your wishlist?')) {
+      handleClearWishlist();
+    }
   };
 
   return (
@@ -113,29 +136,34 @@ const Wishlist = () => {
                 ({itemCount} {itemCount === 1 ? 'Item' : 'Items'})
               </span>
             </div>
-            <button
-              type="button"
-              className={`${labelCaps} text-muted transition-colors hover:text-red-400`}
-            >
-              Clear All
-            </button>
+            {itemCount > 0 && (
+              <button
+                type="button"
+                onClick={onClearAll}
+                className={`${labelCaps} text-muted transition-colors hover:text-red-400`}
+              >
+                Clear All
+              </button>
+            )}
           </div>
         </div>
 
         {/* Filter + sort bar */}
         <div className="mb-10 flex flex-col gap-4 border-b border-line pb-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap gap-2">
-            {filters.map((filter, index) => (
+            {Object.keys(filters).map((name) => (
               <button
-                key={filter}
+                key={name}
                 type="button"
+                aria-pressed={filter === name}
+                onClick={() => setFilter(name)}
                 className={`${labelCaps} border px-4 py-2 transition-colors ${
-                  index === 0
+                  filter === name
                     ? 'border-accent text-accent'
                     : 'border-line text-muted hover:border-accent hover:text-accent'
                 }`}
               >
-                {filter}
+                {name}
               </button>
             ))}
           </div>
@@ -143,7 +171,8 @@ const Wishlist = () => {
             <span className={`${labelCaps} text-muted`}>Sort By</span>
             <div className="relative">
               <select
-                defaultValue="recent"
+                value={sort}
+                onChange={(e) => setSort(e.target.value)}
                 className={`${labelCaps} appearance-none border border-line bg-field py-2 pl-4 pr-10 text-paper outline-none transition-colors focus:border-accent`}
               >
                 <option value="recent">Recently Added</option>
@@ -158,6 +187,11 @@ const Wishlist = () => {
         {errors && (
           <p className="mb-6 border border-red-500/30 bg-red-500/10 px-4 py-3 font-display text-[11px] uppercase tracking-wide text-red-400">
             {errors}
+          </p>
+        )}
+        {notice && !errors && (
+          <p className="mb-6 border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 font-display text-[11px] uppercase tracking-wide text-emerald-400">
+            {notice}
           </p>
         )}
 
@@ -182,21 +216,29 @@ const Wishlist = () => {
           </div>
         )}
 
+        {itemCount > 0 && visibleItems.length === 0 && (
+          <p className="border border-line bg-field py-16 text-center font-display text-xs uppercase tracking-[0.12em] text-muted">
+            No saved items match this filter.
+          </p>
+        )}
+
         {/* Saved items */}
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
-          {savedItems.map((item) => (
+          {visibleItems.map((item) => (
             <article
               key={item.id}
               className="group flex flex-col border border-line bg-field transition-colors hover:border-accent"
             >
               <div className="relative aspect-[3/4] overflow-hidden bg-surface">
-                <img
-                  src={item.image}
-                  alt={item.title}
-                  className={`h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 ${
-                    item.inStock ? '' : 'opacity-40 grayscale'
-                  }`}
-                />
+                <Link to={`/product/${item.slug}`}>
+                  <img
+                    src={item.image}
+                    alt={item.title}
+                    className={`h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 ${
+                      item.inStock ? '' : 'opacity-40 grayscale'
+                    }`}
+                  />
+                </Link>
 
                 {/* Saved indicator */}
                 <span
@@ -220,13 +262,13 @@ const Wishlist = () => {
 
                 {!item.inStock && (
                   <span
-                    className={`${labelCaps} absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 border border-line bg-ink/80 px-4 py-2 text-paper`}
+                    className={`${labelCaps} pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 border border-line bg-ink/80 px-4 py-2 text-paper`}
                   >
                     Sold Out
                   </span>
                 )}
 
-                {item.compareAtPrice && item.inStock && (
+                {item.onSale && item.inStock && (
                   <span
                     className={`${labelCaps} absolute bottom-3 left-3 bg-accent px-2 py-1 text-ink`}
                   >
@@ -239,19 +281,20 @@ const Wishlist = () => {
                 <p className={`${labelCaps} mb-1 text-[10px] text-muted`}>
                   {item.category}
                 </p>
-                <h2
-                  className={`mb-2 font-display text-xl font-semibold uppercase tracking-tight ${
+                <Link
+                  to={`/product/${item.slug}`}
+                  className={`mb-2 font-display text-xl font-semibold uppercase tracking-tight transition-colors hover:text-accent ${
                     item.inStock ? 'text-paper' : 'text-muted'
                   }`}
                 >
                   {item.title}
-                </h2>
+                </Link>
 
                 <div className="mb-3 flex items-baseline gap-2">
                   <span className="font-display text-lg font-semibold text-accent">
                     {formatMoney(item.price)}
                   </span>
-                  {item.compareAtPrice && (
+                  {item.onSale && (
                     <span className="font-display text-sm text-faint line-through">
                       {formatMoney(item.compareAtPrice)}
                     </span>
@@ -291,9 +334,16 @@ const Wishlist = () => {
                 ) : (
                   <button
                     type="button"
-                    className={`${labelCaps} mt-auto w-full rounded-[4px] border border-line py-4 text-muted transition-colors hover:border-paper hover:text-paper`}
+                    aria-pressed={item.notifyMe}
+                    onClick={() => onToggleNotify(item)}
+                    className={`${labelCaps} mt-auto flex w-full items-center justify-center gap-2 rounded-[4px] border py-4 transition-colors ${
+                      item.notifyMe
+                        ? 'border-accent text-accent'
+                        : 'border-line text-muted hover:border-paper hover:text-paper'
+                    }`}
                   >
-                    Notify Me
+                    <FiBell className="h-4 w-4" />
+                    {item.notifyMe ? "We'll Email You" : 'Notify Me'}
                   </button>
                 )}
               </div>
@@ -302,33 +352,18 @@ const Wishlist = () => {
         </div>
 
         {/* Recommendations */}
-        <section className="mt-16">
-          <h2 className="mb-8 border-l-4 border-accent pl-4 font-display text-2xl font-semibold uppercase tracking-tight">
-            You Might Also Like
-          </h2>
-          <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
-            {recommendations.map((item) => (
-              <div key={item.id} className="group">
-                <div className="relative mb-2 aspect-[3/4] overflow-hidden bg-field">
-                  <img
-                    src={item.image}
-                    alt={item.title}
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                </div>
-                <p className={`${labelCaps} mb-1 text-[10px] text-muted`}>
-                  {item.category}
-                </p>
-                <h3 className="font-display text-sm font-bold uppercase tracking-tight text-paper">
-                  {item.title}
-                </h3>
-                <p className="mt-1 font-display text-sm text-accent">
-                  {formatMoney(item.price)}
-                </p>
-              </div>
-            ))}
-          </div>
-        </section>
+        {recommendations.length > 0 && (
+          <section className="mt-16">
+            <h2 className="mb-8 border-l-4 border-accent pl-4 font-display text-2xl font-semibold uppercase tracking-tight">
+              You Might Also Like
+            </h2>
+            <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+              {recommendations.map((product) => (
+                <ProductCard key={product._id} product={product} />
+              ))}
+            </div>
+          </section>
+        )}
       </main>
 
       {/* Footer */}

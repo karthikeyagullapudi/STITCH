@@ -61,3 +61,12 @@ export const moveToCart = async (itemId, quantity) => {
     throw error.response?.data || { message: 'Failed to move item to bag' };
   }
 };
+
+export const clearWishlist = async () => {
+  try {
+    const response = await wishlistApiInstance.delete('/clear');
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Failed to clear wishlist' };
+  }
+};

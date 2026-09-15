@@ -1,6 +1,7 @@
 import productModel, { SIZES } from '../model/product.model.js';
 import { uploadFile, deleteFile } from '../services/storage.services.js';
 import { getPagination, escapeRegex } from '../utils/query.js';
+import { notifyBackInStock } from './wishlist.controller.js';
 
 /* ------------------------------------------------------------------ */
 /* Helpers — multipart/form-data delivers everything as strings, so    */
@@ -316,6 +317,10 @@ export const updateProduct = async (req, res) => {
     const keptFileIds = new Set(collectFileIds(product));
     await deleteImages(
       previousFileIds.filter((fileId) => !keptFileIds.has(fileId)),
+    );
+    // Restocks can fulfil back-in-stock alerts; never block the response.
+    notifyBackInStock(product._id).catch((error) =>
+      console.error('Back-in-stock alert error:', error),
     );
 
     return res.status(200).json({

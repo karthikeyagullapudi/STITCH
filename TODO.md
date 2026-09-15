@@ -75,9 +75,9 @@ Everything incomplete or broken across the app, in order of urgency.
 - [x] Product page: Size Guide, real Materials/Shipping content, show `compareAtPrice`, cap quantity at stock, real related products, slug URLs.
 
 ### Wishlist page
-- [ ] Clear All (needs backend endpoint).
-- [ ] All / In Stock / On Sale / Sold Out filters, sort.
-- [ ] "Notify Me" (no backend); real recommendations.
+- [x] Clear All (needs backend endpoint).
+- [x] All / In Stock / On Sale / Sold Out filters, sort.
+- [x] "Notify Me" (no backend); real recommendations.
 
 ### Account & auth
 - [x] Logout (backend + frontend); header shows "Login" even when logged in; header fetches cart/wishlist for guests (401s).

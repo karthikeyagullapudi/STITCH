@@ -9,6 +9,7 @@ import couponModel from '../model/coupon.model.js';
 import settingsModel from '../model/settings.model.js';
 import userModel from '../model/user.model.js';
 import { getCartDetails } from './cart.controller.js';
+import { notifyBackInStock } from './wishlist.controller.js';
 import { createOrder, refundPayment } from '../services/paymet.servce.js';
 import { calculatePricing, getCouponError } from '../utils/pricing.js';
 import { getPagination, escapeRegex } from '../utils/query.js';
@@ -153,6 +154,12 @@ const cancelOrderAndRefund = async (order) => {
   order.status = 'cancelled';
   await order.save();
   await adjustStock(order.items, 1);
+  // Returned stock can fulfil back-in-stock alerts.
+  order.items.forEach(({ product }) =>
+    notifyBackInStock(product).catch((error) =>
+      console.error('Back-in-stock alert error:', error),
+    ),
+  );
   return order;
 };
 

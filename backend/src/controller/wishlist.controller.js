@@ -1,14 +1,61 @@
 import wishlistModel from '../model/wishlist.model.js';
 import productModel from '../model/product.model.js';
 import cartModel from '../model/cart.model.js';
+import { sendEmail } from '../services/email.services.js';
+import { Config } from '../config/config.js';
 
 /* Populate each saved item with just enough product data for the storefront. */
 const populateWishlist = (query) =>
   query.populate({
     path: 'items.product',
     select:
-      'title slug images price compareAtPrice sku stock status category variants',
+      'title slug images price compareAtPrice sku stock trackQuantity status category variants',
   });
+
+// Whether the saved variant (or the product, if none was chosen) can be bought.
+const isAvailable = (product, variantId) => {
+  if (product.status !== 'active') return false;
+  if (!product.trackQuantity) return true;
+  const variant =
+    variantId &&
+    product.variants.find((v) => String(v._id) === String(variantId));
+  return (variant ? variant.stock : product.stock) > 0;
+};
+
+/* Emails shoppers who asked to hear when a saved product is back in stock,
+   then clears their request. Called whenever a product's stock can rise. */
+export const notifyBackInStock = async (productId) => {
+  const product = await productModel.findById(productId).lean();
+  if (!product) return;
+
+  const wishlists = await wishlistModel
+    .find({ items: { $elemMatch: { product: productId, notifyMe: true } } })
+    .populate('user', 'email name');
+
+  await Promise.all(
+    wishlists.map(async (wishlist) => {
+      const ready = wishlist.items.filter(
+        (item) =>
+          item.notifyMe &&
+          String(item.product) === String(productId) &&
+          isAvailable(product, item.variantId),
+      );
+      if (ready.length === 0 || !wishlist.user) return;
+
+      await sendEmail({
+        to: wishlist.user.email,
+        subject: `${product.title} is back in stock`,
+        html: `<p>Hi ${wishlist.user.name.firstName},</p>
+          <p>Good news — <strong>${product.title}</strong> from your wishlist is available again.</p>
+          <p><a href="${Config.CLIENT_URL}/product/${product.slug}">Shop it now</a></p>`,
+      });
+      ready.forEach((item) => {
+        item.notifyMe = false;
+      });
+      await wishlist.save();
+    }),
+  );
+};
 
 // Reloads the wishlist after a write so the client always gets populated items.
 const respondWithWishlist = async (res, wishlistId, message, status = 200) => {
@@ -108,7 +155,7 @@ export const addToWishlist = async (req, res) => {
 export const updateWishlistItem = async (req, res) => {
   try {
     const { itemId } = req.params;
-    const { variantId, size, colorway } = req.body;
+    const { variantId, size, colorway, notifyMe } = req.body;
 
     const wishlist = await wishlistModel.findOne({ user: req.user._id });
     if (!wishlist) {
@@ -128,9 +175,18 @@ export const updateWishlistItem = async (req, res) => {
     if (variantId !== undefined) item.variantId = variantId || null;
     if (size !== undefined) item.size = size ? String(size).toUpperCase() : undefined;
     if (colorway !== undefined) item.colorway = colorway || undefined;
+    if (notifyMe !== undefined) item.notifyMe = notifyMe;
 
     await wishlist.save();
-    return respondWithWishlist(res, wishlist._id, 'Wishlist item updated');
+    return respondWithWishlist(
+      res,
+      wishlist._id,
+      notifyMe === undefined
+        ? 'Wishlist item updated'
+        : notifyMe
+          ? "We'll email you when it's back in stock"
+          : 'Back-in-stock alert turned off',
+    );
   } catch (error) {
     console.error('updateWishlistItem error:', error);
     return res.status(500).json({
@@ -165,6 +221,21 @@ export const removeWishlistItem = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Failed to remove item from wishlist',
+    });
+  }
+};
+
+export const clearWishlist = async (req, res) => {
+  try {
+    const wishlist = await findOrCreateWishlist(req.user._id);
+    wishlist.items = [];
+    await wishlist.save();
+    return respondWithWishlist(res, wishlist._id, 'Wishlist cleared');
+  } catch (error) {
+    console.error('clearWishlist error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to clear wishlist',
     });
   }
 };

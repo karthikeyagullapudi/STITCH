@@ -4,6 +4,8 @@ import {
   addToWishlist,
   removeWishlistItem,
   moveToCart,
+  updateWishlistItem,
+  clearWishlist,
 } from '../service/wishlist.api.js';
 import {
   setWishlist,
@@ -109,6 +111,29 @@ export const useWishlist = () => {
     }
   };
 
+  // Writes that return the whole wishlist, reporting their message back.
+  const runWishlistUpdate = async (call, fallback) => {
+    try {
+      dispatch(setError(null));
+      const data = await call();
+      dispatch(setWishlist(data?.wishlist));
+      return { success: true, message: data?.message };
+    } catch (error) {
+      const errorMsg = readError(error, fallback);
+      dispatch(setError(errorMsg));
+      return { success: false, error: errorMsg };
+    }
+  };
+
+  const handleToggleNotify = (itemId, notifyMe) =>
+    runWishlistUpdate(
+      () => updateWishlistItem(itemId, { notifyMe }),
+      'Failed to update alert',
+    );
+
+  const handleClearWishlist = () =>
+    runWishlistUpdate(clearWishlist, 'Failed to clear wishlist');
+
   return {
     items,
     isSaved,
@@ -119,5 +144,7 @@ export const useWishlist = () => {
     handleRemoveWishlistItem,
     handleToggleWishlist,
     handleMoveToCart,
+    handleToggleNotify,
+    handleClearWishlist,
   };
 };

@@ -62,7 +62,7 @@ export const updateWishlistItemValidator = [
     .custom(isValidObjectId('Item id')),
 
   body().custom((payload) => {
-    const updatable = ['variantId', 'size', 'colorway'];
+    const updatable = ['variantId', 'size', 'colorway', 'notifyMe'];
     if (!updatable.some((field) => payload?.[field] !== undefined)) {
       throw new Error(`Provide at least one of: ${updatable.join(', ')}`);
     }
@@ -80,6 +80,11 @@ export const updateWishlistItemValidator = [
     .withMessage(`Size must be one of: ${SIZES.join(', ')}`),
 
   body('colorway').optional({ values: 'falsy' }).custom(isValidColorway),
+
+  body('notifyMe')
+    .optional()
+    .isBoolean()
+    .withMessage('Notify me must be a boolean'),
 
   validate,
 ];
