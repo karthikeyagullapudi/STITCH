@@ -6,11 +6,19 @@ import jwt from 'jsonwebtoken';
 
 const DAY = 24 * 60 * 60 * 1000;
 
+// In production the API and storefront live on different domains, so the
+// cookie must be HTTPS-only and allowed cross-site.
+const isProduction = Config.NODE_ENV === 'production';
 const cookieOptions = {
   httpOnly: true,
-  secure: false,
-  sameSite: 'lax',
+  secure: isProduction,
+  sameSite: isProduction ? 'none' : 'lax',
 };
+
+// One message for every credential failure so login can't be used to find
+// out which emails have accounts.
+const INVALID_LOGIN =
+  'Invalid email or password. If you signed up with Google, continue with Google.';
 
 // "Remember me" keeps the session for 30 days instead of 1.
 const setTokenCookie = (res, user, remember = false) => {
@@ -19,18 +27,17 @@ const setTokenCookie = (res, user, remember = false) => {
     expiresIn: maxAge / 1000,
   });
   res.cookie('token', token, { ...cookieOptions, maxAge });
-  return token;
 };
 
+// The token only travels in the httpOnly cookie, never in the JSON body.
 const sendTokenResponse = async (user, res, message, remember) => {
-  const token = setTokenCookie(res, user, remember);
+  setTokenCookie(res, user, remember);
   // Same shape as GET /me so the client has addresses, verification, etc.
   const { password, ...safeUser } = user.toObject();
 
   return res.status(200).json({
     success: true,
     message,
-    token,
     user: safeUser,
   });
 };
@@ -88,26 +95,9 @@ export const userLogin = async (req, res) => {
     const { email, password, role = 'user', remember } = req.body;
 
     const user = await userModel.findOne({ email });
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User does not exist',
-      });
-    }
-
-    if (!user.password) {
-      return res.status(401).json({
-        success: false,
-        message: 'This account uses Google sign-in. Please continue with Google.',
-      });
-    }
-
-    const isPasswordValid = await user.comparePasswords(password);
-    if (!isPasswordValid) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid Password',
-      });
+    // Google-only accounts have no password to compare against.
+    if (!user?.password || !(await user.comparePasswords(password))) {
+      return res.status(401).json({ success: false, message: INVALID_LOGIN });
     }
 
     if (!user.status) {

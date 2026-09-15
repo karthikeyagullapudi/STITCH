@@ -104,26 +104,82 @@ export const getCartDetails = async (userId) => {
   return cart;
 };
 
+// The most of any one item a single order line can hold.
+const MAX_LINE_QUANTITY = 10;
+
+// Why this quantity of a product/variant can't be bought, or null if it can.
+const getQuantityError = (product, variant, quantity) => {
+  if (quantity > MAX_LINE_QUANTITY) {
+    return `You can buy up to ${MAX_LINE_QUANTITY} of each item`;
+  }
+  const stock = variant ? variant.stock : product.stock;
+  if (product.trackQuantity && quantity > stock) {
+    return stock > 0 ? `Only ${stock} left in stock` : 'This item is out of stock';
+  }
+  return null;
+};
+
+/* Adds a product to a user's cart after checking it can be bought. Size and
+   colour always come from the chosen variant, never from the client. Pass a
+   session to run it inside a transaction. Resolves to { error, status } when
+   the line can't be added. */
+export const addLineToCart = async (
+  { userId, productId, variantId, quantity },
+  session = null,
+) => {
+  const product = await productModel.findById(productId).session(session).lean();
+  if (!product || product.status !== 'active') {
+    return { status: 404, error: 'Product not found' };
+  }
+
+  const variant = product.variants.find(
+    (v) => String(v._id) === String(variantId),
+  );
+  if (product.variants.length > 0 && !variant) {
+    return { status: 400, error: 'Choose a size and colour first' };
+  }
+
+  const cart =
+    (await cartModel.findOne({ user: userId }).session(session)) ||
+    new cartModel({ user: userId, items: [] });
+
+  // The same product + variant collapses into one line item.
+  const existing = cart.items.find(
+    (item) =>
+      String(item.product) === String(productId) &&
+      String(item.variantId || '') === String(variant?._id || ''),
+  );
+  const nextQuantity = (existing?.quantity || 0) + quantity;
+  const quantityError = getQuantityError(product, variant, nextQuantity);
+  if (quantityError) return { status: 400, error: quantityError };
+
+  if (existing) {
+    existing.quantity = nextQuantity;
+  } else {
+    cart.items.push({
+      product: productId,
+      variantId: variant?._id || null,
+      size: variant?.size,
+      colorway: variant?.colorway
+        ? { name: variant.colorway.name, hex: variant.colorway.hex }
+        : undefined,
+      quantity,
+    });
+  }
+
+  await cart.save({ session });
+  return { cart };
+};
+
 /* ------------------------------------------------------------------ */
 /* Controllers                                                         */
 /* ------------------------------------------------------------------ */
 
 export const getCart = async (req, res) => {
   try {
-    const user = req.user;
-    let cart = await getCartDetails(user._id);
-
-    if (!cart) {
-      cart = await cartModel.create({
-        user: user._id,
-      });
-    }
-
-    return res.status(200).json({
-      success: true,
-      message: 'Cart fetched successfully',
-      cart,
-    });
+    const exists = await cartModel.exists({ user: req.user._id });
+    if (!exists) await cartModel.create({ user: req.user._id, items: [] });
+    return respondWithCart(res, req.user._id, 'Cart fetched successfully');
   } catch (error) {
     console.error('getCart error:', error);
     return res.status(500).json({
@@ -135,48 +191,18 @@ export const getCart = async (req, res) => {
 
 export const addToCart = async (req, res) => {
   try {
-    const { productId, variantId = null, size, colorway, quantity } = req.body;
-
-    // Only add real, published products to the cart.
-    const product = await productModel.findById(productId).lean();
-    if (!product || product.status !== 'active') {
-      return res.status(404).json({
-        success: false,
-        message: 'Product not found',
-      });
+    const { productId, variantId, quantity } = req.body;
+    const result = await addLineToCart({
+      userId: req.user._id,
+      productId,
+      variantId,
+      quantity: Number(quantity) || 1,
+    });
+    if (result.error) {
+      return res
+        .status(result.status)
+        .json({ success: false, message: result.error });
     }
-
-    const qty = Number(quantity) || 1;
-    const normalizedSize = size ? String(size).toUpperCase() : undefined;
-    const normalizedColor = colorway?.name?.trim().toLowerCase() || '';
-
-    let cart = await cartModel.findOne({ user: req.user._id });
-    if (!cart) {
-      cart = await cartModel.create({ user: req.user._id, items: [] });
-    }
-
-    // The same product/size/colour/variant collapses into one line item.
-    const existing = cart.items.find(
-      (item) =>
-        item.product.toString() === productId &&
-        (item.size || '') === (normalizedSize || '') &&
-        (item.colorway?.name?.trim().toLowerCase() || '') === normalizedColor &&
-        String(item.variantId || '') === String(variantId || ''),
-    );
-
-    if (existing) {
-      existing.quantity += qty;
-    } else {
-      cart.items.push({
-        product: productId,
-        variantId: variantId || null,
-        size: normalizedSize,
-        colorway: colorway || undefined,
-        quantity: qty,
-      });
-    }
-
-    await cart.save();
     return respondWithCart(res, req.user._id, 'Product added to cart');
   } catch (error) {
     console.error('addToCart error:', error);
@@ -190,7 +216,7 @@ export const addToCart = async (req, res) => {
 export const updateCartItem = async (req, res) => {
   try {
     const { itemId } = req.params;
-    const { quantity } = req.body;
+    const quantity = Number(req.body.quantity);
 
     const cart = await cartModel.findOne({ user: req.user._id });
     if (!cart) {
@@ -206,7 +232,21 @@ export const updateCartItem = async (req, res) => {
         .json({ success: false, message: 'Cart item not found' });
     }
 
-    item.quantity = Number(quantity);
+    const product = await productModel.findById(item.product).lean();
+    if (!product) {
+      return res
+        .status(404)
+        .json({ success: false, message: 'Product not found' });
+    }
+    const variant = product.variants.find(
+      (v) => String(v._id) === String(item.variantId),
+    );
+    const quantityError = getQuantityError(product, variant, quantity);
+    if (quantityError) {
+      return res.status(400).json({ success: false, message: quantityError });
+    }
+
+    item.quantity = quantity;
     await cart.save();
     return respondWithCart(res, req.user._id, 'Cart updated');
   } catch (error) {
@@ -249,16 +289,12 @@ export const removeCartItem = async (req, res) => {
 
 export const clearCart = async (req, res) => {
   try {
-    const cart = await cartModel.findOne({ user: req.user._id });
-    if (cart) {
-      cart.items = [];
-      await cart.save();
-    }
-    return res.status(200).json({
-      success: true,
-      message: 'Cart cleared',
-      cart: cart || { user: req.user._id, items: [] },
-    });
+    await cartModel.updateOne(
+      { user: req.user._id },
+      { $set: { items: [] } },
+      { upsert: true },
+    );
+    return respondWithCart(res, req.user._id, 'Cart cleared');
   } catch (error) {
     console.error('clearCart error:', error);
     return res.status(500).json({

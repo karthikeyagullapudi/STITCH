@@ -91,20 +91,20 @@ Everything incomplete or broken across the app, in order of urgency.
 ---
 
 ## 3. Backend hardening
-- [ ] Global error handler + 404 handler.
-- [ ] Cookie `secure` / `sameSite` from env for production.
-- [ ] Don't return the JWT in the JSON body; login 404 vs 401 leaks which emails exist.
-- [ ] Rate limiting, `helmet`; CORS allows any localhost origin in production.
-- [ ] Multer accepts any file type; orphaned ImageKit uploads when product creation fails.
-- [ ] Add/update cart: check stock, variant belongs to product, size/colour match variant, quantity limit.
-- [ ] `moveToCart` isn't atomic.
-- [ ] Inconsistent responses — new cart from `getCart` has no `totalPrice`; `clearCart` returns an unpopulated cart.
-- [ ] Tests, `start` script (nodemon is in `dependencies`), `.env.example` for both apps.
+- [x] Global error handler + 404 handler.
+- [x] Cookie `secure` / `sameSite` from env for production.
+- [x] Don't return the JWT in the JSON body; login 404 vs 401 leaks which emails exist.
+- [x] Rate limiting, `helmet`; CORS allows any localhost origin in production.
+- [x] Multer accepts any file type; orphaned ImageKit uploads when product creation fails.
+- [x] Add/update cart: check stock, variant belongs to product, size/colour match variant, quantity limit.
+- [x] `moveToCart` isn't atomic.
+- [x] Inconsistent responses — new cart from `getCart` has no `totalPrice`; `clearCart` returns an unpopulated cart.
+- [x] Tests (`npm test`), `start` script (nodemon moved to devDependencies), backend `.env.example`.
 
 ---
 
 ## 4. Cleanup & consistency
-- [ ] Hardcoded `http://localhost:3000` in auth service, Login, Register (everything else uses the `/api` proxy).
+- [ ] Hardcoded `http://localhost:3000` in auth service, Login, Register (everything else uses the `/api` proxy); frontend `.env.example`.
 - [ ] Typos: `paymet.servce.js`, `foulder`, `adminAproved`, `getsAllProducts`.
 - [ ] Dead code: unreachable `return result` in storage service, `productdetail` slice field, unused `sizes`/`colorways` in CreateProduct, `RazorpayOrderOptions` import, `console.log`s.
 - [ ] Duplication: `protect`/`authAdmin` token logic, `validate` helper ×4, `currencySymbols`/`formatPrice` ×6, footer ×5 (different copyright years).

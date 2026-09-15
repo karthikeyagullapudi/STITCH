@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import morgan from 'morgan';
 import authRouter from './routes/auth.routes.js';
 import cookieParser from 'cookie-parser';
@@ -15,27 +16,24 @@ import orderRouter from './routes/order.routes.js';
 import couponRouter from './routes/coupon.routes.js';
 import settingsRouter from './routes/settings.routes.js';
 import adminRouter from './routes/admin.routes.js';
+import { notFound, errorHandler } from './middleware/error.middleware.js';
 
 const app = express();
+const isProduction = Config.NODE_ENV === 'production';
 
-const allowedOrigins = [
-  Config.CLIENT_URL,
-  'http://localhost:5173',
-  'http://localhost:5174',
-  'http://localhost:5175',
-].filter(Boolean);
+// Any localhost port is fine while developing; production only allows CLIENT_URL.
+const isAllowedOrigin = (origin) =>
+  origin === Config.CLIENT_URL ||
+  (!isProduction && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin));
 
+app.use(helmet());
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin) return callback(null, true);
-      if (
-        allowedOrigins.includes(origin) ||
-        /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)
-      ) {
-        return callback(null, true);
-      }
-      return callback(new Error('Not allowed by CORS'));
+      if (!origin || isAllowedOrigin(origin)) return callback(null, true);
+      const error = new Error('Not allowed by CORS');
+      error.status = 403;
+      return callback(error);
     },
     credentials: true,
   }),
@@ -49,7 +47,7 @@ app.use(
   }),
 );
 app.use(express.urlencoded({ extended: true }));
-app.use(morgan('dev'));
+app.use(morgan(isProduction ? 'combined' : 'dev'));
 app.use(cookieParser());
 app.use(passport.initialize());
 passport.use(
@@ -76,4 +74,8 @@ app.use('/api/orders', orderRouter);
 app.use('/api/coupons', couponRouter);
 app.use('/api/settings', settingsRouter);
 app.use('/api/admin', adminRouter);
+
+app.use(notFound);
+app.use(errorHandler);
+
 export default app;

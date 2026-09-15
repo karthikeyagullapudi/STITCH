@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { protect } from '../middleware/auth.middleware.js';
 import { upload } from '../middleware/upload.middleware.js';
+import { authLimiter } from '../middleware/rateLimit.middleware.js';
 import {
   updateProfile,
   changePassword,
@@ -24,6 +25,7 @@ const userRouter = Router();
 userRouter.patch('/me', protect, updateProfileValidator, updateProfile);
 userRouter.patch(
   '/me/password',
+  authLimiter,
   protect,
   changePasswordValidator,
   changePassword,
@@ -45,9 +47,10 @@ userRouter.delete(
   deleteAddress,
 );
 
-userRouter.post('/me/verify-phone', protect, sendPhoneOtp);
+userRouter.post('/me/verify-phone', authLimiter, protect, sendPhoneOtp);
 userRouter.post(
   '/me/verify-phone/confirm',
+  authLimiter,
   protect,
   verifyPhoneOtpValidator,
   verifyPhoneOtp,

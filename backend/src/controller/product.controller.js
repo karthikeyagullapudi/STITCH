@@ -90,22 +90,28 @@ const parseVariants = (value) =>
 const sumStock = (variants) =>
   variants.reduce((sum, v) => sum + (v.stock || 0), 0);
 
-// Upload a single multer file to ImageKit and shape it for the schema.
-const uploadImage = async (file) => {
-  const uploaded = await uploadFile({
-    buffer: file.buffer,
-    fileName: file.originalname,
-  });
-  return {
-    url: uploaded.fileUrl,
-    fileId: uploaded.fileId,
-    alt: file.originalname,
+// Uploads multer files to ImageKit, remembering each fileId so the request
+// can remove them again if the product never gets saved.
+const createUploader = () => {
+  const fileIds = [];
+  const uploadImage = async (file) => {
+    const uploaded = await uploadFile({
+      buffer: file.buffer,
+      fileName: file.originalname,
+    });
+    fileIds.push(uploaded.fileId);
+    return {
+      url: uploaded.fileUrl,
+      fileId: uploaded.fileId,
+      alt: file.originalname,
+    };
   };
+  return { uploadImage, fileIds };
 };
 
 // Per-variant images arrive as `variantImages_<index>`, matching the
 // variant's position in the `variants` array.
-const attachVariantImages = (variants, files) =>
+const attachVariantImages = (variants, files, uploadImage) =>
   Promise.all(
     variants.map(async (variant, index) => {
       const variantFiles = files.filter(
@@ -160,6 +166,7 @@ const handleProductError = (res, label, error, message) => {
 /* ------------------------------------------------------------------ */
 
 export const createProduct = async (req, res) => {
+  const { uploadImage, fileIds: uploadedFileIds } = createUploader();
   try {
     const {
       title,
@@ -197,7 +204,7 @@ export const createProduct = async (req, res) => {
 
     const images = await Promise.all(productFiles.map(uploadImage));
     const parsedVariants = parseVariants(variants);
-    await attachVariantImages(parsedVariants, allFiles);
+    await attachVariantImages(parsedVariants, allFiles, uploadImage);
 
     const product = await productModel.create({
       title,
@@ -236,6 +243,7 @@ export const createProduct = async (req, res) => {
       product,
     });
   } catch (error) {
+    await deleteImages(uploadedFileIds);
     return handleProductError(res, 'createProduct', error, 'Failed to create product');
   }
 };
@@ -243,6 +251,7 @@ export const createProduct = async (req, res) => {
 // Partial update: only the fields that are sent change. Products are managed
 // store-wide; `admin` only records who created them.
 export const updateProduct = async (req, res) => {
+  const { uploadImage, fileIds: uploadedFileIds } = createUploader();
   try {
     const product = await productModel.findById(req.params.productId);
     if (!product) {
@@ -301,7 +310,7 @@ export const updateProduct = async (req, res) => {
 
     if (body.variants !== undefined) {
       const variants = parseVariants(body.variants);
-      await attachVariantImages(variants, files);
+      await attachVariantImages(variants, files, uploadImage);
       product.variants = variants;
     }
 
@@ -329,6 +338,7 @@ export const updateProduct = async (req, res) => {
       product,
     });
   } catch (error) {
+    await deleteImages(uploadedFileIds);
     return handleProductError(res, 'updateProduct', error, 'Failed to update product');
   }
 };

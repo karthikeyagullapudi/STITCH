@@ -1,8 +1,9 @@
 import wishlistModel from '../model/wishlist.model.js';
 import productModel from '../model/product.model.js';
-import cartModel from '../model/cart.model.js';
+import mongoose from 'mongoose';
 import { sendEmail } from '../services/email.services.js';
 import { Config } from '../config/config.js';
+import { addLineToCart } from './cart.controller.js';
 
 /* Populate each saved item with just enough product data for the storefront. */
 const populateWishlist = (query) =>
@@ -270,75 +271,53 @@ export const getWishlistProduct = async (req, res) => {
   }
 };
 
-/* "Move to Bag" — copies the saved item (and its variant) into the cart, then
-   drops it from the wishlist. */
+/* "Move to Bag" — adds the saved item (and its variant) to the cart and drops
+   it from the wishlist in one transaction, so neither write happens alone. */
 export const moveToCart = async (req, res) => {
+  const session = await mongoose.startSession();
   try {
     const { itemId } = req.params;
-    const { quantity } = req.body;
+    let result;
 
-    const wishlist = await wishlistModel.findOne({ user: req.user._id });
-    if (!wishlist) {
+    await session.withTransaction(async () => {
+      const wishlist = await wishlistModel
+        .findOne({ user: req.user._id })
+        .session(session);
+      const item = wishlist?.items.id(itemId);
+      if (!item) {
+        result = { status: 404, error: 'Wishlist item not found' };
+        return;
+      }
+
+      result = await addLineToCart(
+        {
+          userId: req.user._id,
+          productId: item.product,
+          variantId: item.variantId,
+          quantity: Number(req.body.quantity) || 1,
+        },
+        session,
+      );
+      if (result.error) return;
+
+      wishlist.items.pull(itemId);
+      await wishlist.save({ session });
+      result.wishlistId = wishlist._id;
+    });
+
+    if (result.error) {
       return res
-        .status(404)
-        .json({ success: false, message: 'Wishlist not found' });
+        .status(result.status)
+        .json({ success: false, message: result.error });
     }
-
-    const item = wishlist.items.id(itemId);
-    if (!item) {
-      return res
-        .status(404)
-        .json({ success: false, message: 'Wishlist item not found' });
-    }
-
-    const product = await productModel.findById(item.product).lean();
-    if (!product || product.status !== 'active') {
-      return res
-        .status(404)
-        .json({ success: false, message: 'Product is no longer available' });
-    }
-
-    const qty = Number(quantity) || 1;
-    const normalizedSize = item.size ? String(item.size).toUpperCase() : undefined;
-    const normalizedColor = item.colorway?.name?.trim().toLowerCase() || '';
-
-    let cart = await cartModel.findOne({ user: req.user._id });
-    if (!cart) {
-      cart = await cartModel.create({ user: req.user._id, items: [] });
-    }
-
-    // Collapse onto an existing line item, matching addToCart's rules.
-    const existing = cart.items.find(
-      (line) =>
-        line.product.toString() === String(item.product) &&
-        (line.size || '') === (normalizedSize || '') &&
-        (line.colorway?.name?.trim().toLowerCase() || '') === normalizedColor &&
-        String(line.variantId || '') === String(item.variantId || ''),
-    );
-
-    if (existing) {
-      existing.quantity += qty;
-    } else {
-      cart.items.push({
-        product: item.product,
-        variantId: item.variantId || null,
-        size: normalizedSize,
-        colorway: item.colorway || undefined,
-        quantity: qty,
-      });
-    }
-
-    await cart.save();
-
-    wishlist.items.pull(itemId);
-    await wishlist.save();
-
-    return respondWithWishlist(res, wishlist._id, 'Moved to your bag');
+    return respondWithWishlist(res, result.wishlistId, 'Moved to your bag');
   } catch (error) {
     console.error('moveToCart error:', error);
     return res.status(500).json({
       success: false,
       message: 'Failed to move item to cart',
     });
+  } finally {
+    await session.endSession();
   }
 };

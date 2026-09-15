@@ -323,15 +323,25 @@ const Cart = () => {
                       />
                     </Link>
                     <div className="absolute inset-0 flex items-center justify-center bg-ink/40 opacity-0 transition-opacity group-hover:opacity-100">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleAddToCart({ productId: p._id, quantity: 1 })
-                        }
-                        className="rounded-[4px] bg-accent px-4 py-1.5 font-display text-[10px] font-bold uppercase tracking-widest text-ink transition-transform hover:scale-105"
-                      >
-                        Add to Bag
-                      </button>
+                      {/* Products with variants need a size/colour picked first. */}
+                      {p.variants?.length ? (
+                        <Link
+                          to={`/product/${p.slug || p._id}`}
+                          className="rounded-[4px] bg-accent px-4 py-1.5 font-display text-[10px] font-bold uppercase tracking-widest text-ink transition-transform hover:scale-105"
+                        >
+                          Choose Size
+                        </Link>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleAddToCart({ productId: p._id, quantity: 1 })
+                          }
+                          className="rounded-[4px] bg-accent px-4 py-1.5 font-display text-[10px] font-bold uppercase tracking-widest text-ink transition-transform hover:scale-105"
+                        >
+                          Add to Bag
+                        </button>
+                      )}
                     </div>
                   </div>
                   <p className="mb-1 font-display text-[10px] uppercase tracking-wide text-muted">

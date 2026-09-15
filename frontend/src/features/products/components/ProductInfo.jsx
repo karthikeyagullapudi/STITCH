@@ -118,8 +118,6 @@ const ProductInfo = ({ product, selectedVariant, onSelectVariant }) => {
     const result = await handleAddToCart({
       productId: product._id,
       variantId: selectedVariant?._id || null,
-      size: selectedSize,
-      colorway: selectedColorway || undefined,
       quantity: orderQuantity,
     });
     setAdding(false);

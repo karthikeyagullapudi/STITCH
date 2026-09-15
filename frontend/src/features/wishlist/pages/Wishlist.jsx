@@ -83,6 +83,8 @@ const Wishlist = () => {
         size: item.size,
         colorway: item.colorway,
         notifyMe: item.notifyMe,
+        // Saved from a product card without picking a size/colour.
+        needsOptions: !variant && item.product.variants?.length > 0,
         addedAt: item.createdAt,
         inStock:
           item.product.status === 'active' &&
@@ -323,7 +325,14 @@ const Wishlist = () => {
                   )}
                 </div>
 
-                {item.inStock ? (
+                {item.inStock && item.needsOptions ? (
+                  <Link
+                    to={`/product/${item.slug}`}
+                    className={`${labelCaps} mt-auto w-full rounded-[4px] bg-accent py-4 text-center text-ink transition hover:brightness-110`}
+                  >
+                    Choose Size
+                  </Link>
+                ) : item.inStock ? (
                   <button
                     type="button"
                     onClick={() => handleMoveToBag(item.id)}

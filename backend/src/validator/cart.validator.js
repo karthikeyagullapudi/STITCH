@@ -1,6 +1,5 @@
 import mongoose from 'mongoose';
 import { body, param, validationResult } from 'express-validator';
-import { SIZES } from '../model/product.model.js';
 
 const validate = (req, res, next) => {
   const errors = validationResult(req);
@@ -27,24 +26,6 @@ export const addToCartValidator = [
   body('variantId')
     .optional({ values: 'falsy' })
     .custom(isValidObjectId('Variant id')),
-
-  body('size')
-    .optional({ values: 'falsy' })
-    .customSanitizer((value) => String(value).trim().toUpperCase())
-    .isIn(SIZES)
-    .withMessage(`Size must be one of: ${SIZES.join(', ')}`),
-
-  body('colorway')
-    .optional({ values: 'falsy' })
-    .custom((colorway) => {
-      if (typeof colorway !== 'object' || Array.isArray(colorway)) {
-        throw new Error('Colorway must be an object');
-      }
-      if (typeof colorway.name !== 'string' || !colorway.name.trim()) {
-        throw new Error('Colorway name is required');
-      }
-      return true;
-    }),
 
   body('quantity')
     .optional({ values: 'falsy' })

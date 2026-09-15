@@ -17,13 +17,14 @@ import {
   resendVerificationEmail,
 } from '../controller/auth.controller.js';
 import { protect } from '../middleware/auth.middleware.js';
+import { authLimiter } from '../middleware/rateLimit.middleware.js';
 import passport from 'passport';
 import { Config } from '../config/config.js';
 
 const authRouter = Router();
 
-authRouter.post('/register', registerValidation, userRegister);
-authRouter.post('/login', loginValidation, userLogin);
+authRouter.post('/register', authLimiter, registerValidation, userRegister);
+authRouter.post('/login', authLimiter, loginValidation, userLogin);
 authRouter.post('/logout', userLogout);
 authRouter.get(
   '/google',
@@ -48,13 +49,24 @@ authRouter.get('/me', protect, (req, res) => {
   });
 });
 
-authRouter.post('/forgot-password', forgotPasswordValidation, forgotPassword);
+authRouter.post(
+  '/forgot-password',
+  authLimiter,
+  forgotPasswordValidation,
+  forgotPassword,
+);
 authRouter.post(
   '/reset-password/:token',
+  authLimiter,
   resetPasswordValidation,
   resetPassword,
 );
 authRouter.get('/verify-email/:token', tokenParamValidation, verifyEmail);
-authRouter.post('/verify-email/resend', protect, resendVerificationEmail);
+authRouter.post(
+  '/verify-email/resend',
+  authLimiter,
+  protect,
+  resendVerificationEmail,
+);
 
 export default authRouter;
