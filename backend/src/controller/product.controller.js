@@ -1,11 +1,13 @@
 import productModel, { SIZES } from '../model/product.model.js';
-import { uploadFile } from '../services/storage.services.js';
+import { uploadFile, deleteFile } from '../services/storage.services.js';
 import { getPagination, escapeRegex } from '../utils/query.js';
 
 /* ------------------------------------------------------------------ */
 /* Helpers — multipart/form-data delivers everything as strings, so    */
 /* coerce defensively before handing values to Mongoose.               */
 /* ------------------------------------------------------------------ */
+
+const HEX_COLOR = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 
 const slugify = (str = '') =>
   String(str)
@@ -41,11 +43,51 @@ const toNumberOrNull = (value) => {
 };
 
 // Keep slugs unique without failing the request on a collision.
-const buildUniqueSlug = async (base) => {
+const buildUniqueSlug = async (base, excludeId) => {
   const root = slugify(base) || `product-${Date.now().toString(36)}`;
-  const exists = await productModel.exists({ slug: root });
+  const exists = await productModel.exists({
+    slug: root,
+    _id: { $ne: excludeId },
+  });
   return exists ? `${root}-${Date.now().toString(36)}` : root;
 };
+
+const normalizeColorway = (colorway) => {
+  if (typeof colorway === 'string') return { name: colorway, hex: '#000000' };
+  if (colorway && typeof colorway === 'object') {
+    return {
+      name: colorway.name || 'Default',
+      hex: HEX_COLOR.test(colorway.hex) ? colorway.hex : '#000000',
+    };
+  }
+  return undefined;
+};
+
+const parseColorways = (value) =>
+  parseList(value).map(
+    (item) => normalizeColorway(item) || { name: 'Default', hex: '#000000' },
+  );
+
+// Existing variants keep their `_id` (and kept images) when edited.
+const parseVariants = (value) =>
+  parseList(value).map((v) => ({
+    _id: v._id || undefined,
+    size: v.size ? String(v.size).toUpperCase() : undefined,
+    colorway: normalizeColorway(v.colorway),
+    sku: v.sku ? String(v.sku).trim() : undefined,
+    stock: toNumberOrNull(v.stock) ?? 0,
+    price:
+      v.price?.amount !== undefined && v.price?.amount !== null
+        ? {
+            amount: toNumberOrNull(v.price.amount) ?? 0,
+            currency: v.price.currency || 'INR',
+          }
+        : undefined,
+    images: Array.isArray(v.images) ? v.images : [],
+  }));
+
+const sumStock = (variants) =>
+  variants.reduce((sum, v) => sum + (v.stock || 0), 0);
 
 // Upload a single multer file to ImageKit and shape it for the schema.
 const uploadImage = async (file) => {
@@ -60,8 +102,60 @@ const uploadImage = async (file) => {
   };
 };
 
+// Per-variant images arrive as `variantImages_<index>`, matching the
+// variant's position in the `variants` array.
+const attachVariantImages = (variants, files) =>
+  Promise.all(
+    variants.map(async (variant, index) => {
+      const variantFiles = files.filter(
+        (file) => file.fieldname === `variantImages_${index}`,
+      );
+      if (variantFiles.length === 0) return;
+      const uploaded = await Promise.all(variantFiles.map(uploadImage));
+      variant.images = [...variant.images, ...uploaded];
+    }),
+  );
+
+const collectFileIds = (product) => [
+  ...product.images.map((image) => image.fileId),
+  ...product.variants.flatMap((variant) =>
+    variant.images.map((image) => image.fileId),
+  ),
+];
+
+// A failed ImageKit delete is logged but never fails the request.
+const deleteImages = (fileIds) =>
+  Promise.all(
+    fileIds.filter(Boolean).map((fileId) =>
+      deleteFile(fileId).catch((error) =>
+        console.error(`ImageKit delete failed for ${fileId}:`, error.message),
+      ),
+    ),
+  );
+
+const handleProductError = (res, label, error, message) => {
+  // Duplicate unique key (slug or sku)
+  if (error?.code === 11000) {
+    const field = Object.keys(error.keyPattern || {})[0] || 'field';
+    return res.status(409).json({
+      success: false,
+      message: `A product with this ${field} already exists`,
+    });
+  }
+  if (error?.name === 'ValidationError') {
+    return res.status(400).json({
+      success: false,
+      message: Object.values(error.errors)
+        .map((e) => e.message)
+        .join(', '),
+    });
+  }
+  console.error(`${label} error:`, error);
+  return res.status(500).json({ success: false, message });
+};
+
 /* ------------------------------------------------------------------ */
-/* Controllers                                                         */
+/* Admin                                                               */
 /* ------------------------------------------------------------------ */
 
 export const createProduct = async (req, res) => {
@@ -91,10 +185,6 @@ export const createProduct = async (req, res) => {
     } = req.body;
 
     const allFiles = Array.isArray(req.files) ? req.files : [];
-
-    // Product-level images arrive under the `images` field; per-variant images
-    // arrive under `variantImages_<index>` fields (index maps to the variant's
-    // position in the `variants` array).
     const productFiles = allFiles.filter((file) => file.fieldname === 'images');
 
     if (productFiles.length === 0) {
@@ -104,99 +194,9 @@ export const createProduct = async (req, res) => {
       });
     }
 
-    // Upload every product image to ImageKit in parallel.
     const images = await Promise.all(productFiles.map(uploadImage));
-
-    // Group variant image files by their variant index for later attachment.
-    const variantFilesByIndex = new Map();
-    allFiles.forEach((file) => {
-      const match = /^variantImages_(\d+)$/.exec(file.fieldname);
-      if (!match) return;
-      const index = Number(match[1]);
-      if (!variantFilesByIndex.has(index)) variantFilesByIndex.set(index, []);
-      variantFilesByIndex.get(index).push(file);
-    });
-
-    const parseColorways = (val) => {
-      const rawList = parseList(val);
-      return rawList.map((item) => {
-        if (typeof item === 'string') {
-          return { name: item, hex: '#000000' };
-        }
-        if (item && typeof item === 'object') {
-          return {
-            name: item.name || 'Default',
-            hex: /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(item.hex)
-              ? item.hex
-              : '#000000',
-          };
-        }
-        return { name: 'Default', hex: '#000000' };
-      });
-    };
-
-    const parseVariants = (val) => {
-      if (!val) return [];
-      let list = [];
-      if (Array.isArray(val)) {
-        list = val;
-      } else {
-        try {
-          const parsed = JSON.parse(val);
-          list = Array.isArray(parsed) ? parsed : [];
-        } catch {
-          list = [];
-        }
-      }
-      return list.map((v) => ({
-        size: v.size ? String(v.size).toUpperCase() : undefined,
-        colorway:
-          typeof v.colorway === 'string'
-            ? { name: v.colorway, hex: '#000000' }
-            : v.colorway && typeof v.colorway === 'object'
-              ? {
-                  name: v.colorway.name || 'Default',
-                  hex: /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v.colorway.hex)
-                    ? v.colorway.hex
-                    : '#000000',
-                }
-              : undefined,
-        sku: v.sku ? String(v.sku).trim() : undefined,
-        stock: toNumberOrNull(v.stock) ?? 0,
-        price:
-          v.price?.amount !== undefined && v.price?.amount !== null
-            ? {
-                amount: toNumberOrNull(v.price.amount) ?? 0,
-                currency: v.price.currency || 'INR',
-              }
-            : undefined,
-        images: Array.isArray(v.images) ? v.images : [],
-      }));
-    };
-
     const parsedVariants = parseVariants(variants);
-    const parsedColorways = parseColorways(colorways);
-
-    // Upload each variant's own images and merge them onto the variant. The
-    // fieldname index lines up with the variant's position in the array.
-    await Promise.all(
-      parsedVariants.map(async (variant, index) => {
-        const files = variantFilesByIndex.get(index) || [];
-        if (files.length === 0) return;
-        const uploaded = await Promise.all(files.map(uploadImage));
-        variant.images = [...(variant.images || []), ...uploaded];
-      }),
-    );
-
-    // Calculate aggregate stock if variants are provided
-    const totalVariantStock = parsedVariants.reduce(
-      (sum, v) => sum + (v.stock || 0),
-      0,
-    );
-    const finalStock =
-      parsedVariants.length > 0
-        ? totalVariantStock
-        : (toNumberOrNull(stock) ?? 0);
+    await attachVariantImages(parsedVariants, allFiles);
 
     const product = await productModel.create({
       title,
@@ -213,9 +213,13 @@ export const createProduct = async (req, res) => {
       costPerItem: toNumberOrNull(costPerItem),
       chargeTax: toBool(chargeTax, false),
       sku: sku ? String(sku).trim() : undefined,
-      stock: finalStock,
+      // Stock follows the variants when there are any.
+      stock:
+        parsedVariants.length > 0
+          ? sumStock(parsedVariants)
+          : (toNumberOrNull(stock) ?? 0),
       trackQuantity: toBool(trackQuantity, true),
-      colorways: parsedColorways,
+      colorways: parseColorways(colorways),
       variants: parsedVariants,
       gender: gender || 'unisex',
       category,
@@ -231,51 +235,199 @@ export const createProduct = async (req, res) => {
       product,
     });
   } catch (error) {
-    // Duplicate unique key (slug or sku)
-    if (error?.code === 11000) {
-      const field = Object.keys(error.keyPattern || {})[0] || 'field';
-      return res.status(409).json({
-        success: false,
-        message: `A product with this ${field} already exists`,
-      });
+    return handleProductError(res, 'createProduct', error, 'Failed to create product');
+  }
+};
+
+// Partial update: only the fields that are sent change. Products are managed
+// store-wide; `admin` only records who created them.
+export const updateProduct = async (req, res) => {
+  try {
+    const product = await productModel.findById(req.params.productId);
+    if (!product) {
+      return res
+        .status(404)
+        .json({ success: false, message: 'product not found' });
     }
-    if (error?.name === 'ValidationError') {
-      return res.status(400).json({
-        success: false,
-        message: Object.values(error.errors)
-          .map((e) => e.message)
-          .join(', '),
+
+    const body = req.body;
+    const files = Array.isArray(req.files) ? req.files : [];
+    const previousFileIds = collectFileIds(product);
+
+    ['title', 'description', 'materials', 'category', 'vendor', 'status', 'gender']
+      .filter((field) => body[field] !== undefined)
+      .forEach((field) => {
+        product[field] = body[field];
       });
+    if (body.collection !== undefined) product.collectionName = body.collection;
+    if (body.sku !== undefined) product.sku = body.sku ? String(body.sku).trim() : undefined;
+    if (body.price !== undefined) {
+      product.price = {
+        amount: toNumberOrNull(body.price) ?? 0,
+        currency: body.currency || product.price.currency,
+      };
     }
-    console.error('createProduct error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to create product',
+    if (body.compareAtPrice !== undefined) {
+      product.compareAtPrice = toNumberOrNull(body.compareAtPrice);
+    }
+    if (body.costPerItem !== undefined) {
+      product.costPerItem = toNumberOrNull(body.costPerItem);
+    }
+    if (body.chargeTax !== undefined) product.chargeTax = toBool(body.chargeTax);
+    if (body.trackQuantity !== undefined) {
+      product.trackQuantity = toBool(body.trackQuantity, true);
+    }
+    if (body.tags !== undefined) product.tags = parseList(body.tags);
+    if (body.colorways !== undefined) {
+      product.colorways = parseColorways(body.colorways);
+    }
+    if (body.slug !== undefined && body.slug !== product.slug) {
+      product.slug = await buildUniqueSlug(body.slug || product.title, product._id);
+    }
+
+    // Images = the ones the admin kept + any new uploads.
+    const newImageFiles = files.filter((file) => file.fieldname === 'images');
+    if (body.existingImages !== undefined || newImageFiles.length > 0) {
+      const kept =
+        body.existingImages !== undefined
+          ? parseList(body.existingImages)
+          : product.images;
+      product.images = [
+        ...kept,
+        ...(await Promise.all(newImageFiles.map(uploadImage))),
+      ];
+    }
+
+    if (body.variants !== undefined) {
+      const variants = parseVariants(body.variants);
+      await attachVariantImages(variants, files);
+      product.variants = variants;
+    }
+
+    if (product.variants.length > 0) {
+      product.stock = sumStock(product.variants);
+    } else if (body.stock !== undefined) {
+      product.stock = toNumberOrNull(body.stock) ?? 0;
+    }
+
+    await product.save();
+
+    // Remove images that are no longer used anywhere on the product.
+    const keptFileIds = new Set(collectFileIds(product));
+    await deleteImages(
+      previousFileIds.filter((fileId) => !keptFileIds.has(fileId)),
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: 'Product updated successfully',
+      product,
     });
+  } catch (error) {
+    return handleProductError(res, 'updateProduct', error, 'Failed to update product');
+  }
+};
+
+export const deleteProduct = async (req, res) => {
+  try {
+    const product = await productModel.findByIdAndDelete(req.params.productId);
+    if (!product) {
+      return res
+        .status(404)
+        .json({ success: false, message: 'product not found' });
+    }
+
+    await deleteImages(collectFileIds(product));
+    return res.status(200).json({
+      success: true,
+      message: 'Product deleted successfully',
+    });
+  } catch (error) {
+    return handleProductError(res, 'deleteProduct', error, 'Failed to delete product');
+  }
+};
+
+export const getAdminProductById = async (req, res) => {
+  try {
+    const product = await productModel.findById(req.params.productId).lean();
+    if (!product) {
+      return res
+        .status(404)
+        .json({ success: false, message: 'product not found' });
+    }
+    return res.status(200).json({
+      success: true,
+      message: 'product fetched successfully',
+      product,
+    });
+  } catch (error) {
+    return handleProductError(res, 'getAdminProductById', error, 'Failed to fetch product');
   }
 };
 
 export const getAdminProducts = async (req, res) => {
   try {
-    const products = await productModel
-      .find({ admin: req.user._id })
-      .sort({ createdAt: -1 })
-      .lean();
+    const { search, category, status } = req.query;
+    const { page, limit, skip } = getPagination(req.query, 10);
+    const scope = {};
+    const outOfStock = { trackQuantity: true, stock: { $lte: 0 } };
+
+    const filter = { ...scope };
+    if (search) {
+      const pattern = new RegExp(escapeRegex(search), 'i');
+      filter.$or = [{ title: pattern }, { sku: pattern }, { 'variants.sku': pattern }];
+    }
+    if (category) filter.category = category;
+    // "out" is a stock state rather than a stored status.
+    if (status === 'out') Object.assign(filter, outOfStock);
+    else if (status) filter.status = status;
+
+    const [products, total, categories, statusCounts, outCount] =
+      await Promise.all([
+        productModel
+          .find(filter)
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .lean(),
+        productModel.countDocuments(filter),
+        productModel.distinct('category', scope),
+        productModel.aggregate([
+          { $match: scope },
+          { $group: { _id: '$status', count: { $sum: 1 } } },
+        ]),
+        productModel.countDocuments({ ...scope, ...outOfStock }),
+      ]);
+
+    const counts = Object.fromEntries(
+      statusCounts.map(({ _id, count }) => [_id, count]),
+    );
 
     return res.status(200).json({
       success: true,
       message: 'Products fetched successfully',
       count: products.length,
       products,
+      total,
+      page,
+      pages: Math.max(1, Math.ceil(total / limit)),
+      categories: categories.filter(Boolean).sort(),
+      stats: {
+        total: statusCounts.reduce((sum, { count }) => sum + count, 0),
+        active: counts.active || 0,
+        draft: counts.draft || 0,
+        archived: counts.archived || 0,
+        outOfStock: outCount,
+      },
     });
   } catch (error) {
-    console.error('getAdminProducts error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to fetch products',
-    });
+    return handleProductError(res, 'getAdminProducts', error, 'Failed to fetch products');
   }
 };
+
+/* ------------------------------------------------------------------ */
+/* Storefront                                                          */
+/* ------------------------------------------------------------------ */
 
 const PRODUCT_SORTS = {
   newest: { createdAt: -1 },
@@ -353,11 +505,7 @@ export const getAllProducts = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('getAllProducts error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to fetch products',
-    });
+    return handleProductError(res, 'getAllProducts', error, 'Failed to fetch products');
   }
 };
 
@@ -384,75 +532,6 @@ export const getProductBySlug = async (req, res) => {
       product,
     });
   } catch (error) {
-    console.error('getProductBySlug error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to fetch product',
-    });
-  }
-};
-
-export const addProductVariants = async (req, res) => {
-  try {
-    const { productId } = req.params;
-    const { variants } = req.body;
-    const product = await productModel.findOne({
-      _id: productId,
-      admin: req.user._id,
-    });
-    if (!product) {
-      return res.status(404).json({
-        success: false,
-        message: 'product not found',
-      });
-    }
-
-    // A size + colourway combination can only exist once per product.
-    const variantKey = (v) =>
-      `${String(v.size).toUpperCase()}::${v.colorway?.name?.trim().toLowerCase()}`;
-    const existingKeys = new Set(product.variants.map(variantKey));
-    const duplicate = variants.find((v) => existingKeys.has(variantKey(v)));
-    if (duplicate) {
-      return res.status(409).json({
-        success: false,
-        message: `A variant for size ${duplicate.size} in ${duplicate.colorway.name} already exists`,
-      });
-    }
-
-    // Uploaded images apply to every variant added in this request.
-    const images = await Promise.all((req.files || []).map(uploadImage));
-
-    product.variants.push(
-      ...variants.map((v) => ({
-        ...v,
-        stock: Number(v.stock) || 0,
-        images: [...(v.images || []), ...images],
-      })),
-    );
-    product.stock = product.variants.reduce(
-      (sum, v) => sum + (v.stock || 0),
-      0,
-    );
-    await product.save();
-
-    return res.status(201).json({
-      success: true,
-      message: 'Variants added successfully',
-      product,
-    });
-  } catch (error) {
-    if (error?.name === 'ValidationError') {
-      return res.status(400).json({
-        success: false,
-        message: Object.values(error.errors)
-          .map((e) => e.message)
-          .join(', '),
-      });
-    }
-    console.error('addProductVariants error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to add variants',
-    });
+    return handleProductError(res, 'getProductBySlug', error, 'Failed to fetch product');
   }
 };

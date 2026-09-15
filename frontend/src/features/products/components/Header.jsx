@@ -110,7 +110,7 @@ const Header = () => {
           </button>
           {user?.role === 'admin' && (
             <Link
-              to="/admin/products"
+              to="/admin"
               className={`${labelCaps} hidden text-muted transition-colors hover:text-accent sm:block`}
             >
               Admin
@@ -215,7 +215,7 @@ const Header = () => {
               <>
                 {user.role === 'admin' && (
                   <Link
-                    to="/admin/products"
+                    to="/admin"
                     onClick={() => setMobileMenuOpen(false)}
                     className={`${labelCaps} pt-2 text-sm text-muted transition-colors hover:text-accent`}
                   >

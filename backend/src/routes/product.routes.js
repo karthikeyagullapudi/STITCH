@@ -2,14 +2,17 @@ import { Router } from 'express';
 import { authAdmin } from '../middleware/auth.middleware.js';
 import {
   createProduct,
+  updateProduct,
+  deleteProduct,
   getAdminProducts,
+  getAdminProductById,
   getAllProducts,
   getProductBySlug,
-  addProductVariants,
 } from '../controller/product.controller.js';
 import {
   createProductValidator,
-  addProductVariantsValidator,
+  updateProductValidator,
+  productIdParamValidator,
 } from '../validator/product.validator.js';
 import { upload } from '../middleware/upload.middleware.js';
 
@@ -26,17 +29,29 @@ productRouter.post(
 );
 
 productRouter.get('/admin/all-products', authAdmin, getAdminProducts);
+productRouter.get(
+  '/admin/:productId',
+  authAdmin,
+  productIdParamValidator,
+  getAdminProductById,
+);
 
 productRouter.get('/all-products', getAllProducts);
 
 productRouter.get('/product/:slug', getProductBySlug);
 
-productRouter.post(
-  '/:productId/variants',
+productRouter.patch(
+  '/:productId',
   authAdmin,
-  upload.array('images', 5),
-  addProductVariantsValidator,
-  addProductVariants,
+  upload.any(),
+  updateProductValidator,
+  updateProduct,
+);
+productRouter.delete(
+  '/:productId',
+  authAdmin,
+  productIdParamValidator,
+  deleteProduct,
 );
 
 export default productRouter;

@@ -59,7 +59,7 @@ const Login = () => {
       // Send users back to the page that asked them to sign in.
       navigate(
         result.user.role === 'admin'
-          ? '/admin/products'
+          ? '/admin'
           : location.state?.from || '/',
         { replace: true },
       );

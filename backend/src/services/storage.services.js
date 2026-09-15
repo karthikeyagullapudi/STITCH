@@ -19,3 +19,5 @@ export const uploadFile = async ({ buffer, fileName, foulder = 'stitch' }) => {
 
   return result;
 };
+
+export const deleteFile = async (fileId) => client.files.delete(fileId);

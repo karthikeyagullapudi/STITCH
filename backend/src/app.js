@@ -14,6 +14,7 @@ import newsletterRouter from './routes/newsletter.routes.js';
 import orderRouter from './routes/order.routes.js';
 import couponRouter from './routes/coupon.routes.js';
 import settingsRouter from './routes/settings.routes.js';
+import adminRouter from './routes/admin.routes.js';
 
 const app = express();
 
@@ -74,4 +75,5 @@ app.use('/api/newsletter', newsletterRouter);
 app.use('/api/orders', orderRouter);
 app.use('/api/coupons', couponRouter);
 app.use('/api/settings', settingsRouter);
+app.use('/api/admin', adminRouter);
 export default app;

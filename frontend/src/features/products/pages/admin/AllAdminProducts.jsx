@@ -1,23 +1,24 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { useSelector } from 'react-redux';
 import {
   FiPlus,
   FiSearch,
   FiChevronDown,
-  FiChevronLeft,
-  FiChevronRight,
   FiList,
   FiGrid,
   FiMoreVertical,
 } from 'react-icons/fi';
-import AdminLayout from '../../components/AdminLayout.jsx';
+import AdminLayout from '../../../admin/components/AdminLayout.jsx';
+import Pagination from '../../../../shared/components/Pagination.jsx';
 import { useProduct } from '../../hook/useProduct.js';
+import { formatPrice } from '../../../../shared/utils/format.js';
 
-const currencySymbols = { INR: '₹', USD: '$', EUR: '€', GBP: '£', JPY: '¥' };
-
+// Tracked products that have sold out show as "out" whatever their status.
 const productStatus = (p) =>
-  p.stock === 0 ? 'out' : p.status === 'active' ? 'active' : 'draft';
+  p.status === 'active' && p.trackQuantity !== false && p.stock <= 0
+    ? 'out'
+    : p.status;
 
 const badge = {
   active: {
@@ -25,14 +26,29 @@ const badge = {
     cls: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400',
   },
   draft: { label: 'Draft', cls: 'border-line bg-line/40 text-muted' },
+  archived: {
+    label: 'Archived',
+    cls: 'border-amber-500/30 bg-amber-500/10 text-amber-400',
+  },
   out: {
     label: 'Out of Stock',
     cls: 'border-red-500/30 bg-red-500/10 text-red-400',
   },
 };
 
+const statusOptions = [
+  ['active', 'Active'],
+  ['draft', 'Draft'],
+  ['archived', 'Archived'],
+  ['out', 'Out of Stock'],
+];
+
 const thCls =
   'p-4 font-display text-[11px] font-bold uppercase tracking-[0.12em] text-muted';
+const selectCls =
+  'min-w-[150px] appearance-none border border-line bg-field px-4 py-3 pr-10 font-display text-[11px] font-bold uppercase tracking-[0.12em] text-paper outline-none transition-colors focus:border-accent';
+const menuItemCls =
+  'block w-full px-4 py-2 text-left font-display text-[11px] uppercase tracking-wide text-muted transition-colors hover:bg-field hover:text-paper';
 
 const StatusBadge = ({ status }) => {
   const b = badge[status];
@@ -46,32 +62,128 @@ const StatusBadge = ({ status }) => {
 };
 
 const AllAdminProducts = () => {
-  const { handleGetAdminProducts } = useProduct();
-  const { adminProducts, loading, errors } = useSelector(
+  const { handleGetAdminProducts, handleUpdateProduct, handleDeleteProduct } =
+    useProduct();
+  const { adminProducts, adminProductsMeta, loading, errors } = useSelector(
     (state) => state.product,
   );
+  const [search, setSearch] = useState('');
+  const [category, setCategory] = useState('');
+  const [status, setStatus] = useState('');
+  const [page, setPage] = useState(1);
+  const [view, setView] = useState('list');
+  const [selected, setSelected] = useState([]);
+  const [openMenu, setOpenMenu] = useState(null);
+  const [actionError, setActionError] = useState(null);
 
+  const reload = () =>
+    handleGetAdminProducts({ search, category, status, page, limit: 10 });
+
+  // Debounced so typing in the search box doesn't fire a request per key.
   useEffect(() => {
-    handleGetAdminProducts();
+    const timer = setTimeout(reload, 300);
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [search, category, status, page]);
 
-  const stats = [
-    { label: 'Total Products', value: adminProducts.length },
-    {
-      label: 'Active Listings',
-      value: adminProducts.filter((p) => productStatus(p) === 'active').length,
-    },
-    {
-      label: 'Draft Mode',
-      value: adminProducts.filter((p) => productStatus(p) === 'draft').length,
-    },
-    {
-      label: 'Out of Stock',
-      value: adminProducts.filter((p) => productStatus(p) === 'out').length,
-      accent: true,
-    },
+  // Any filter change goes back to page one and clears the selection.
+  const changeFilter = (setter) => (e) => {
+    setter(e.target.value);
+    setPage(1);
+    setSelected([]);
+  };
+
+  const toggleSelected = (id) =>
+    setSelected(
+      selected.includes(id)
+        ? selected.filter((selectedId) => selectedId !== id)
+        : [...selected, id],
+    );
+
+  const allSelected =
+    adminProducts.length > 0 && selected.length === adminProducts.length;
+
+  // Runs one request per product, then refreshes the list.
+  const runForProducts = async (ids, action) => {
+    setOpenMenu(null);
+    const results = await Promise.all(ids.map(action));
+    const failed = results.find((result) => !result.success);
+    setActionError(failed ? failed.error : null);
+    setSelected([]);
+    reload();
+  };
+
+  const setProductStatus = (ids, nextStatus) =>
+    runForProducts(ids, (id) => handleUpdateProduct(id, { status: nextStatus }));
+
+  const deleteProducts = (ids) => {
+    if (
+      window.confirm(
+        `Delete ${ids.length} product${ids.length > 1 ? 's' : ''}? Their images are removed too.`,
+      )
+    ) {
+      runForProducts(ids, handleDeleteProduct);
+    }
+  };
+
+  const { stats } = adminProductsMeta;
+  const statCards = [
+    { label: 'Total Products', value: stats.total },
+    { label: 'Active Listings', value: stats.active },
+    { label: 'Draft Mode', value: stats.draft },
+    { label: 'Out of Stock', value: stats.outOfStock, accent: true },
   ];
+
+  const rowActions = (p) => (
+    <div className="relative inline-block text-left">
+      <button
+        type="button"
+        aria-label={`Actions for ${p.title}`}
+        onClick={() => setOpenMenu(openMenu === p._id ? null : p._id)}
+        className="p-2 text-muted transition-colors hover:text-paper"
+      >
+        <FiMoreVertical className="h-5 w-5" />
+      </button>
+      {openMenu === p._id && (
+        <div className="absolute right-0 z-20 mt-1 w-44 border border-line bg-panel py-1">
+          <Link to={`/admin/products/${p._id}/edit`} className={menuItemCls}>
+            Edit
+          </Link>
+          {p.status === 'active' && (
+            <a
+              href={`/product/${p.slug}`}
+              target="_blank"
+              rel="noreferrer"
+              className={menuItemCls}
+            >
+              View in Store
+            </a>
+          )}
+          <button
+            type="button"
+            onClick={() =>
+              setProductStatus(
+                [p._id],
+                p.status === 'archived' ? 'active' : 'archived',
+              )
+            }
+            className={menuItemCls}
+          >
+            {p.status === 'archived' ? 'Restore' : 'Archive'}
+          </button>
+          <button
+            type="button"
+            onClick={() => deleteProducts([p._id])}
+            className={`${menuItemCls} hover:text-red-400`}
+          >
+            Delete
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
+  const firstShown = (adminProductsMeta.page - 1) * 10 + 1;
 
   return (
     <AdminLayout active="Products">
@@ -83,7 +195,7 @@ const AllAdminProducts = () => {
               Products
             </h1>
             <p className="font-display text-xs uppercase tracking-[0.1em] text-muted">
-              {adminProducts.length} items total in catalogue
+              {stats.total} items total in catalogue
             </p>
           </div>
           <Link
@@ -97,7 +209,7 @@ const AllAdminProducts = () => {
 
         {/* Stat cards */}
         <div className="mb-10 grid grid-cols-2 gap-6 lg:grid-cols-4">
-          {stats.map(({ label, value, accent }) => (
+          {statCards.map(({ label, value, accent }) => (
             <div key={label} className="border border-line bg-field p-6">
               <p className="mb-2 font-display text-[11px] font-bold uppercase tracking-[0.12em] text-muted">
                 {label}
@@ -119,115 +231,159 @@ const AllAdminProducts = () => {
               <input
                 type="text"
                 name="searchQuery"
+                value={search}
+                onChange={changeFilter(setSearch)}
                 placeholder="Search products / SKU..."
                 className="w-full border border-line bg-field py-3 pl-11 pr-4 text-sm text-paper outline-none transition-colors placeholder:text-faint focus:border-accent"
               />
             </div>
-            <div className="hidden gap-4 md:flex">
-              {[
-                {
-                  label: 'Category',
-                  opts: ["Men's", "Women's", 'Accessories'],
-                },
-                { label: 'Status', opts: ['Active', 'Draft', 'Out of Stock'] },
-              ].map(({ label, opts }) => (
-                <div key={label} className="relative">
-                  <select
-                    name={label.toLowerCase()}
-                    className="min-w-[150px] appearance-none border border-line bg-field px-4 py-3 pr-10 font-display text-[11px] font-bold uppercase tracking-[0.12em] text-paper outline-none transition-colors focus:border-accent"
-                  >
-                    <option>{label}</option>
-                    {opts.map((o) => (
-                      <option key={o}>{o}</option>
-                    ))}
-                  </select>
-                  <FiChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-                </div>
-              ))}
+            <div className="flex gap-4">
+              <div className="relative">
+                <select
+                  name="category"
+                  value={category}
+                  onChange={changeFilter(setCategory)}
+                  className={selectCls}
+                >
+                  <option value="">All Categories</option>
+                  {adminProductsMeta.categories.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+                <FiChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+              </div>
+              <div className="relative">
+                <select
+                  name="status"
+                  value={status}
+                  onChange={changeFilter(setStatus)}
+                  className={selectCls}
+                >
+                  <option value="">All Statuses</option>
+                  {statusOptions.map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+                <FiChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+              </div>
             </div>
           </div>
 
           {/* View toggle */}
           <div className="flex items-center gap-2 border border-line p-2">
-            <button
-              type="button"
-              aria-label="List view"
-              className="bg-field p-1.5 text-paper"
-            >
-              <FiList className="h-5 w-5" />
-            </button>
-            <button
-              type="button"
-              aria-label="Grid view"
-              className="p-1.5 text-muted transition-colors hover:text-paper"
-            >
-              <FiGrid className="h-5 w-5" />
-            </button>
+            {[
+              ['list', 'List view', FiList],
+              ['grid', 'Grid view', FiGrid],
+            ].map(([mode, label, Icon]) => (
+              <button
+                key={mode}
+                type="button"
+                aria-label={label}
+                aria-pressed={view === mode}
+                onClick={() => setView(mode)}
+                className={`p-1.5 transition-colors ${
+                  view === mode ? 'bg-field text-paper' : 'text-muted hover:text-paper'
+                }`}
+              >
+                <Icon className="h-5 w-5" />
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Table */}
-        <div className="overflow-x-auto border border-line bg-field">
-          <table className="w-full border-collapse text-left">
-            <thead>
-              <tr className="border-b border-line bg-panel">
-                <th className="w-12 p-4 text-center">
-                  <input
-                    type="checkbox"
-                    name="selectAll"
-                    className="stitch-checkbox"
-                  />
-                </th>
-                <th className={thCls}>Product</th>
-                <th className={thCls}>Category</th>
-                <th className={thCls}>Price</th>
-                <th className={thCls}>Stock</th>
-                <th className={thCls}>Status</th>
-                <th className={`${thCls} text-right`}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading && (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="p-8 text-center font-display text-xs uppercase tracking-[0.12em] text-muted"
-                  >
-                    Loading products...
-                  </td>
+        {/* Bulk actions */}
+        {selected.length > 0 && (
+          <div className="mb-4 flex flex-wrap items-center gap-4 border border-accent/40 bg-accent/5 px-4 py-3 font-display text-[11px] font-bold uppercase tracking-[0.12em]">
+            <span className="text-paper">{selected.length} selected</span>
+            <button
+              type="button"
+              onClick={() => setProductStatus(selected, 'archived')}
+              className="text-muted hover:text-paper"
+            >
+              Archive
+            </button>
+            <button
+              type="button"
+              onClick={() => setProductStatus(selected, 'active')}
+              className="text-muted hover:text-paper"
+            >
+              Set Active
+            </button>
+            <button
+              type="button"
+              onClick={() => deleteProducts(selected)}
+              className="text-muted hover:text-red-400"
+            >
+              Delete
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelected([])}
+              className="ml-auto text-muted hover:text-paper"
+            >
+              Clear
+            </button>
+          </div>
+        )}
+
+        {(errors || actionError) && (
+          <p className="mb-4 border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+            {actionError || errors}
+          </p>
+        )}
+
+        {adminProducts.length === 0 && (
+          <p className="border border-line bg-field p-8 text-center font-display text-xs uppercase tracking-[0.12em] text-muted">
+            {loading ? (
+              'Loading products...'
+            ) : (
+              <>
+                No products found.{' '}
+                <Link
+                  to="/admin/products/new"
+                  className="text-accent underline underline-offset-4"
+                >
+                  Add a product
+                </Link>
+              </>
+            )}
+          </p>
+        )}
+
+        {adminProducts.length > 0 && view === 'list' && (
+          <div className="overflow-x-auto border border-line bg-field">
+            <table className="w-full border-collapse text-left">
+              <thead>
+                <tr className="border-b border-line bg-panel">
+                  <th className="w-12 p-4 text-center">
+                    <input
+                      type="checkbox"
+                      name="selectAll"
+                      aria-label="Select all products on this page"
+                      className="stitch-checkbox"
+                      checked={allSelected}
+                      onChange={() =>
+                        setSelected(allSelected ? [] : adminProducts.map((p) => p._id))
+                      }
+                    />
+                  </th>
+                  <th className={thCls}>Product</th>
+                  <th className={thCls}>Category</th>
+                  <th className={thCls}>Price</th>
+                  <th className={thCls}>Stock</th>
+                  <th className={thCls}>Status</th>
+                  <th className={`${thCls} text-right`}>Actions</th>
                 </tr>
-              )}
-              {!loading && errors && (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="p-8 text-center font-display text-xs uppercase tracking-[0.12em] text-red-400"
-                  >
-                    {errors}
-                  </td>
-                </tr>
-              )}
-              {!loading && !errors && adminProducts.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="p-8 text-center font-display text-xs uppercase tracking-[0.12em] text-muted"
-                  >
-                    No products yet.{' '}
-                    <Link
-                      to="/admin/products/new"
-                      className="text-accent underline underline-offset-4"
-                    >
-                      Add your first product
-                    </Link>
-                  </td>
-                </tr>
-              )}
-              {!loading &&
-                adminProducts.map((p) => {
-                  const status = productStatus(p);
+              </thead>
+              <tbody>
+                {adminProducts.map((p) => {
+                  const rowStatus = productStatus(p);
                   const stockCls =
-                    status === 'out'
+                    rowStatus === 'out'
                       ? 'text-red-400'
                       : p.stock <= 5
                         ? 'text-accent'
@@ -241,11 +397,17 @@ const AllAdminProducts = () => {
                         <input
                           type="checkbox"
                           name={`selectProduct-${p._id}`}
+                          aria-label={`Select ${p.title}`}
                           className="stitch-checkbox"
+                          checked={selected.includes(p._id)}
+                          onChange={() => toggleSelected(p._id)}
                         />
                       </td>
                       <td className="p-4">
-                        <div className="flex items-center gap-4">
+                        <Link
+                          to={`/admin/products/${p._id}/edit`}
+                          className="flex items-center gap-4"
+                        >
                           <div className="h-16 w-12 flex-shrink-0 overflow-hidden bg-ink">
                             {p.images?.[0]?.url && (
                               <img
@@ -260,17 +422,16 @@ const AllAdminProducts = () => {
                               {p.title}
                             </p>
                             <p className="font-display text-[10px] uppercase tracking-wide text-muted">
-                              ID: {p._id.slice(-8)}
+                              {p.sku ? `SKU: ${p.sku}` : `ID: ${p._id.slice(-8)}`}
                             </p>
                           </div>
-                        </div>
+                        </Link>
                       </td>
                       <td className="p-4 font-display text-xs uppercase tracking-wide text-muted">
-                        —
+                        {p.category || '—'}
                       </td>
                       <td className="p-4 font-display text-sm font-semibold text-paper">
-                        {currencySymbols[p.price?.currency] || ''}
-                        {Number(p.price?.amount ?? 0).toFixed(2)}
+                        {formatPrice(p.price?.amount, p.price?.currency)}
                       </td>
                       <td
                         className={`p-4 font-display text-xs uppercase tracking-wide ${stockCls}`}
@@ -278,62 +439,74 @@ const AllAdminProducts = () => {
                         {String(p.stock).padStart(2, '0')} Units
                       </td>
                       <td className="p-4">
-                        <StatusBadge status={status} />
+                        <StatusBadge status={rowStatus} />
                       </td>
-                      <td className="p-4 text-right">
-                        <button
-                          type="button"
-                          aria-label="Row actions"
-                          className="p-2 text-muted transition-colors hover:text-paper"
-                        >
-                          <FiMoreVertical className="h-5 w-5" />
-                        </button>
-                      </td>
+                      <td className="p-4 text-right">{rowActions(p)}</td>
                     </tr>
                   );
                 })}
-            </tbody>
-          </table>
-        </div>
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {adminProducts.length > 0 && view === 'grid' && (
+          <div className="grid grid-cols-2 gap-6 md:grid-cols-3 xl:grid-cols-5">
+            {adminProducts.map((p) => (
+              <div key={p._id} className="border border-line bg-field">
+                <div className="relative aspect-[3/4] overflow-hidden bg-ink">
+                  {p.images?.[0]?.url && (
+                    <img
+                      src={p.images[0].url}
+                      alt={p.images[0].alt || p.title}
+                      className="h-full w-full object-cover"
+                    />
+                  )}
+                  <input
+                    type="checkbox"
+                    aria-label={`Select ${p.title}`}
+                    className="stitch-checkbox absolute left-3 top-3"
+                    checked={selected.includes(p._id)}
+                    onChange={() => toggleSelected(p._id)}
+                  />
+                  <div className="absolute right-1 top-1 bg-ink/70">
+                    {rowActions(p)}
+                  </div>
+                </div>
+                <div className="space-y-2 p-4">
+                  <Link
+                    to={`/admin/products/${p._id}/edit`}
+                    className="block truncate font-display text-sm font-semibold uppercase text-paper hover:text-accent"
+                  >
+                    {p.title}
+                  </Link>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-display text-sm text-paper">
+                      {formatPrice(p.price?.amount, p.price?.currency)}
+                    </span>
+                    <StatusBadge status={productStatus(p)} />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Pagination */}
         <footer className="mt-8 flex flex-wrap items-center justify-between gap-4">
           <p className="font-display text-xs uppercase tracking-wide text-muted">
-            Showing {adminProducts.length > 0 ? 1 : 0}–{adminProducts.length} of{' '}
-            {adminProducts.length} products
+            Showing {adminProductsMeta.total > 0 ? firstShown : 0}–
+            {firstShown - 1 + adminProducts.length} of {adminProductsMeta.total}{' '}
+            products
           </p>
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              aria-label="Previous page"
-              className="flex h-10 w-10 items-center justify-center border border-line text-muted transition-colors hover:bg-field hover:text-paper"
-            >
-              <FiChevronLeft className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              className="h-10 w-10 border border-accent bg-accent font-display text-xs font-bold text-ink"
-            >
-              1
-            </button>
-            {['2', '3'].map((n) => (
-              <button
-                key={n}
-                type="button"
-                className="h-10 w-10 border border-line font-display text-xs font-bold text-paper transition-colors hover:bg-field"
-              >
-                {n}
-              </button>
-            ))}
-            <span className="px-3 font-display text-xs text-muted">...</span>
-            <button
-              type="button"
-              aria-label="Next page"
-              className="flex h-10 w-10 items-center justify-center border border-line text-muted transition-colors hover:bg-field hover:text-paper"
-            >
-              <FiChevronRight className="h-4 w-4" />
-            </button>
-          </div>
+          <Pagination
+            page={adminProductsMeta.page}
+            pages={adminProductsMeta.pages}
+            onChange={(nextPage) => {
+              setPage(nextPage);
+              setSelected([]);
+            }}
+          />
         </footer>
       </div>
     </AdminLayout>

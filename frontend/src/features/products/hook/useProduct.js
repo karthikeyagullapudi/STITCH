@@ -4,9 +4,13 @@ import {
   getAdminProducts,
   getsAllProducts,
   getProductBySlug,
+  getAdminProductById,
+  updateProduct,
+  deleteProduct,
 } from '../service/product.api.js';
 import {
   setAdminProducts,
+  setAdminProductsMeta,
   setAllProducts,
   setProductsMeta,
   setLoading,
@@ -35,12 +39,21 @@ export const useProduct = () => {
     }
   };
 
-  const handleGetAdminProducts = async () => {
+  const handleGetAdminProducts = async (params) => {
     try {
       dispatch(setLoading(true));
       dispatch(setError(null));
-      const data = await getAdminProducts();
+      const data = await getAdminProducts(params);
       dispatch(setAdminProducts(data?.products));
+      dispatch(
+        setAdminProductsMeta({
+          total: data?.total,
+          page: data?.page,
+          pages: data?.pages,
+          categories: data?.categories,
+          stats: data?.stats,
+        }),
+      );
       return data?.products;
     } catch (error) {
       const errorMsg = error?.message || 'Failed to fetch products';
@@ -93,7 +106,28 @@ export const useProduct = () => {
     }
   };
 
+  // Page-level requests that report back instead of using the shared slice.
+  const run = async (call, fallback) => {
+    try {
+      return { success: true, ...(await call()) };
+    } catch (error) {
+      return {
+        success: false,
+        error:
+          error?.message ||
+          error?.errors?.map((e) => e.msg).join(', ') ||
+          fallback,
+      };
+    }
+  };
+
   return {
+    handleGetAdminProductById: (productId) =>
+      run(() => getAdminProductById(productId), 'Failed to fetch product'),
+    handleUpdateProduct: (productId, productData) =>
+      run(() => updateProduct(productId, productData), 'Failed to update product'),
+    handleDeleteProduct: (productId) =>
+      run(() => deleteProduct(productId), 'Failed to delete product'),
     handleCreateProduct,
     handleGetAdminProducts,
     handleGetAllProducts,

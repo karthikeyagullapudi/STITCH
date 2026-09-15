@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { FiSearch, FiChevronDown } from 'react-icons/fi';
-import AdminLayout from '../../../products/components/AdminLayout.jsx';
+import AdminLayout from '../../../admin/components/AdminLayout.jsx';
 import OrderStatusBadge from '../../components/OrderStatusBadge.jsx';
 import { AddressLines } from '../../../account/components/AddressBook.jsx';
 import Pagination from '../../../../shared/components/Pagination.jsx';

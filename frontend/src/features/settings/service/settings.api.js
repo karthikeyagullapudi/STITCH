@@ -8,3 +8,9 @@ const settingsApiInstance = axios.create({
 
 export const getSettings = () =>
   request(() => settingsApiInstance.get('/'), 'Failed to fetch settings');
+
+export const updateSettings = (payload) =>
+  request(
+    () => settingsApiInstance.patch('/', payload),
+    'Failed to update settings',
+  );

@@ -57,14 +57,14 @@ Everything incomplete or broken across the app, in order of urgency.
 - [x] Cancellations & refunds.
 
 ### Admin panel
-- [ ] Edit product page, delete / archive, manage variants after creation, delete images from ImageKit.
-- [ ] Product list: search, category/status filters, list/grid toggle, row & select-all checkboxes, row actions (⋮) menu, real pagination.
-- [ ] Product list: Category column always "—"; archived shows as "Draft".
-- [ ] Create page: "Save as Draft", drag-and-drop upload, live storefront preview, "View Live Store Page" link.
-- [ ] Dashboard, Customers, Analytics, Settings pages (sidebar links are `#`).
-- [ ] Real admin user chip (hardcoded "Kento Y.") + admin logout.
-- [ ] Admin approval flow (UI to approve admins) — until then, approve by setting `adminAproved: true` on the user in MongoDB.
-- [ ] `addProductVariants` API works but has no admin UI.
+- [x] Edit product page, delete / archive, manage variants after creation, delete images from ImageKit.
+- [x] Product list: search, category/status filters, list/grid toggle, row & select-all checkboxes, row actions (⋮) menu, real pagination.
+- [x] Product list: Category column always "—"; archived shows as "Draft".
+- [x] Create page: "Save as Draft", drag-and-drop upload, live storefront preview, "View Live Store Page" link.
+- [x] Dashboard, Customers, Analytics, Settings pages (sidebar links are `#`).
+- [x] Real admin user chip (hardcoded "Kento Y.") + admin logout.
+- [x] Admin approval flow (Settings → Admin Team).
+- [x] Variant management UI — handled by the edit page (the separate `addProductVariants` endpoint was removed).
 
 ### Storefront
 - [x] "Men's Collection" shows every product — filter by gender; "18 items available" is hardcoded.

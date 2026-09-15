@@ -5,6 +5,7 @@ import cartReducer from '../features/cart/state/cart.slice.js';
 import wishlistReducer from '../features/wishlist/state/wishlist.slice.js';
 import orderReducer from '../features/orders/state/order.slice.js';
 import couponReducer from '../features/coupons/state/coupon.slice.js';
+import adminReducer from '../features/admin/state/admin.slice.js';
 
 const store = configureStore({
   reducer: {
@@ -14,6 +15,7 @@ const store = configureStore({
     wishlist: wishlistReducer,
     order: orderReducer,
     coupon: couponReducer,
+    admin: adminReducer,
   },
 });
 

@@ -158,128 +158,141 @@ const assertVariantList = (variants, { reservedSkus = [] } = {}) => {
   return true;
 };
 
+// Create requires the core fields; update accepts any subset of them.
+const productFields = (isUpdate) => {
+  const field = (name) => (isUpdate ? body(name).optional() : body(name));
+
+  return [
+    field('title')
+      .trim()
+      .notEmpty()
+      .withMessage('Title is required')
+      .isString()
+      .withMessage('Title must be a string'),
+
+    field('description')
+      .trim()
+      .notEmpty()
+      .withMessage('Description is required')
+      .isString()
+      .withMessage('Description must be a string'),
+
+    body('materials')
+      .optional({ values: 'falsy' })
+      .isString()
+      .withMessage('Materials must be a string'),
+
+    body('slug')
+      .optional({ values: 'falsy' })
+      .isString()
+      .withMessage('Slug must be a string'),
+
+    field('price')
+      .notEmpty()
+      .withMessage('Price is required')
+      .isFloat({ min: 0 })
+      .withMessage('Price must be a positive number'),
+
+    body('currency')
+      .optional({ values: 'falsy' })
+      .isIn(CURRENCIES)
+      .withMessage(`Currency must be one of: ${CURRENCIES.join(', ')}`),
+
+    body('compareAtPrice')
+      .optional({ values: 'falsy' })
+      .isFloat({ min: 0 })
+      .withMessage('Compare-at price must be a positive number'),
+
+    body('costPerItem')
+      .optional({ values: 'falsy' })
+      .isFloat({ min: 0 })
+      .withMessage('Cost per item must be a positive number'),
+
+    body('chargeTax')
+      .optional({ values: 'falsy' })
+      .isBoolean()
+      .withMessage('Charge tax must be a boolean'),
+
+    body('sku')
+      .optional({ values: 'falsy' })
+      .isString()
+      .withMessage('SKU must be a string'),
+
+    body('stock')
+      .optional({ values: 'falsy' })
+      .isInt({ min: 0 })
+      .withMessage('Stock must be a non-negative integer'),
+
+    body('trackQuantity')
+      .optional({ values: 'falsy' })
+      .isBoolean()
+      .withMessage('Track quantity must be a boolean'),
+
+    body('variants')
+      .optional({ values: 'falsy' })
+      .customSanitizer(parseJson)
+      .custom((variants, { req }) =>
+        assertVariantList(variants, { reservedSkus: [req.body.sku] }),
+      ),
+
+    body('colorways')
+      .optional({ values: 'falsy' })
+      .customSanitizer(parseToArray)
+      .custom((colorways) => {
+        if (!Array.isArray(colorways)) {
+          throw new Error('Colorways must be an array');
+        }
+        const seen = new Set();
+        colorways.forEach((colorway, index) => {
+          const label = `Colorway ${index + 1}`;
+          assertColorway(colorway, label);
+          const name = colorway.name.trim().toLowerCase();
+          if (seen.has(name)) {
+            throw new Error(
+              `${label}: duplicate colorway ${colorway.name.trim()}`,
+            );
+          }
+          seen.add(name);
+        });
+        return true;
+      }),
+
+    body('gender')
+      .optional({ values: 'falsy' })
+      .isIn(GENDERS)
+      .withMessage(`Gender must be one of: ${GENDERS.join(', ')}`),
+
+    body('category').optional({ values: 'falsy' }).isString(),
+    body('collection').optional({ values: 'falsy' }).isString(),
+    body('collectionName').optional({ values: 'falsy' }).isString(),
+    body('vendor').optional({ values: 'falsy' }).isString(),
+
+    body('tags')
+      .optional({ values: 'falsy' })
+      .customSanitizer(parseToArray)
+      .custom((tags) => {
+        if (!Array.isArray(tags)) throw new Error('Tags must be an array');
+        tags.forEach((tag) => {
+          if (typeof tag !== 'string' && typeof tag !== 'number') {
+            throw new Error('Every tag must be a string');
+          }
+        });
+        return true;
+      }),
+
+    body('status')
+      .optional({ values: 'falsy' })
+      .isIn(PRODUCT_STATUS)
+      .withMessage(`Status must be one of: ${PRODUCT_STATUS.join(', ')}`),
+  ];
+};
+
+const productIdParam = param('productId')
+  .custom((productId) => mongoose.Types.ObjectId.isValid(productId))
+  .withMessage('Product id is not a valid id');
+
 export const createProductValidator = [
-  body('title')
-    .trim()
-    .notEmpty()
-    .withMessage('Title is required')
-    .isString()
-    .withMessage('Title must be a string'),
-
-  body('description')
-    .trim()
-    .notEmpty()
-    .withMessage('Description is required')
-    .isString()
-    .withMessage('Description must be a string'),
-
-  body('materials')
-    .optional({ values: 'falsy' })
-    .isString()
-    .withMessage('Materials must be a string'),
-
-  body('slug')
-    .optional({ values: 'falsy' })
-    .isString()
-    .withMessage('Slug must be a string'),
-
-  body('price')
-    .notEmpty()
-    .withMessage('Price is required')
-    .isFloat({ min: 0 })
-    .withMessage('Price must be a positive number'),
-
-  body('currency')
-    .optional({ values: 'falsy' })
-    .isIn(CURRENCIES)
-    .withMessage(`Currency must be one of: ${CURRENCIES.join(', ')}`),
-
-  body('compareAtPrice')
-    .optional({ values: 'falsy' })
-    .isFloat({ min: 0 })
-    .withMessage('Compare-at price must be a positive number'),
-
-  body('costPerItem')
-    .optional({ values: 'falsy' })
-    .isFloat({ min: 0 })
-    .withMessage('Cost per item must be a positive number'),
-
-  body('chargeTax')
-    .optional({ values: 'falsy' })
-    .isBoolean()
-    .withMessage('Charge tax must be a boolean'),
-
-  body('sku')
-    .optional({ values: 'falsy' })
-    .isString()
-    .withMessage('SKU must be a string'),
-
-  body('stock')
-    .optional({ values: 'falsy' })
-    .isInt({ min: 0 })
-    .withMessage('Stock must be a non-negative integer'),
-
-  body('trackQuantity')
-    .optional({ values: 'falsy' })
-    .isBoolean()
-    .withMessage('Track quantity must be a boolean'),
-
-  body('variants')
-    .optional({ values: 'falsy' })
-    .customSanitizer(parseJson)
-    .custom((variants, { req }) =>
-      assertVariantList(variants, { reservedSkus: [req.body.sku] }),
-    ),
-
-  body('colorways')
-    .optional({ values: 'falsy' })
-    .customSanitizer(parseToArray)
-    .custom((colorways) => {
-      if (!Array.isArray(colorways)) {
-        throw new Error('Colorways must be an array');
-      }
-      const seen = new Set();
-      colorways.forEach((colorway, index) => {
-        const label = `Colorway ${index + 1}`;
-        assertColorway(colorway, label);
-        const name = colorway.name.trim().toLowerCase();
-        if (seen.has(name)) {
-          throw new Error(
-            `${label}: duplicate colorway ${colorway.name.trim()}`,
-          );
-        }
-        seen.add(name);
-      });
-      return true;
-    }),
-
-  body('gender')
-    .optional({ values: 'falsy' })
-    .isIn(GENDERS)
-    .withMessage(`Gender must be one of: ${GENDERS.join(', ')}`),
-
-  body('category').optional({ values: 'falsy' }).isString(),
-  body('collection').optional({ values: 'falsy' }).isString(),
-  body('collectionName').optional({ values: 'falsy' }).isString(),
-  body('vendor').optional({ values: 'falsy' }).isString(),
-
-  body('tags')
-    .optional({ values: 'falsy' })
-    .customSanitizer(parseToArray)
-    .custom((tags) => {
-      if (!Array.isArray(tags)) throw new Error('Tags must be an array');
-      tags.forEach((tag) => {
-        if (typeof tag !== 'string' && typeof tag !== 'number') {
-          throw new Error('Every tag must be a string');
-        }
-      });
-      return true;
-    }),
-
-  body('status')
-    .optional({ values: 'falsy' })
-    .isIn(PRODUCT_STATUS)
-    .withMessage(`Status must be one of: ${PRODUCT_STATUS.join(', ')}`),
+  ...productFields(false),
 
   body('images').custom((value, { req }) => {
     const productImages = (req.files || []).filter(
@@ -294,29 +307,23 @@ export const createProductValidator = [
   validate,
 ];
 
-export const addProductVariantsValidator = [
-  param('productId')
-    .notEmpty()
-    .withMessage('Product id is required')
-    .custom((productId) => {
-      if (!mongoose.Types.ObjectId.isValid(productId)) {
-        throw new Error('Product id is not a valid id');
-      }
-      return true;
-    }),
+export const updateProductValidator = [
+  productIdParam,
+  ...productFields(true),
 
-  body('variants')
-    .notEmpty()
-    .withMessage('At least one variant is required')
-    .bail()
-    .customSanitizer(parseToArray)
-    .custom((variants) => {
-      assertVariantList(variants);
-      if (variants.length === 0) {
-        throw new Error('At least one variant is required');
+  // Images the admin kept, sent back as JSON alongside any new uploads.
+  body('existingImages')
+    .optional()
+    .customSanitizer(parseJson)
+    .custom((images) => {
+      if (!Array.isArray(images)) throw new Error('Existing images must be an array');
+      if (images.some((image) => !isPlainObject(image) || !image.url)) {
+        throw new Error('Every existing image needs a url');
       }
       return true;
     }),
 
   validate,
 ];
+
+export const productIdParamValidator = [productIdParam, validate];

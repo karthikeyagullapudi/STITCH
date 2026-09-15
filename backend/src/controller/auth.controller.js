@@ -24,18 +24,14 @@ const setTokenCookie = (res, user, remember = false) => {
 
 const sendTokenResponse = async (user, res, message, remember) => {
   const token = setTokenCookie(res, user, remember);
+  // Same shape as GET /me so the client has addresses, verification, etc.
+  const { password, ...safeUser } = user.toObject();
 
   return res.status(200).json({
     success: true,
     message,
     token,
-    user: {
-      id: user._id,
-      email: user.email,
-      name: user.name,
-      phone: user.phone,
-      role: user.role,
-    },
+    user: safeUser,
   });
 };
 

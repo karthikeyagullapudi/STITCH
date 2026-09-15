@@ -20,6 +20,11 @@ import MyOrders from '../features/orders/pages/user/MyOrders.jsx';
 import OrderDetail from '../features/orders/pages/user/OrderDetail.jsx';
 import AdminOrders from '../features/orders/pages/admin/AdminOrders.jsx';
 import Coupons from '../features/coupons/pages/admin/Coupons.jsx';
+import EditProduct from '../features/products/pages/admin/EditProduct.jsx';
+import Dashboard from '../features/admin/pages/Dashboard.jsx';
+import Customers from '../features/admin/pages/Customers.jsx';
+import Analytics from '../features/admin/pages/Analytics.jsx';
+import Settings from '../features/admin/pages/Settings.jsx';
 
 const router = createBrowserRouter([
   {
@@ -111,6 +116,14 @@ const router = createBrowserRouter([
     path: '/admin',
     children: [
       {
+        index: true,
+        element: (
+          <Protected role="admin">
+            <Dashboard />
+          </Protected>
+        ),
+      },
+      {
         path: '/admin/products',
         element: (
           <Protected role="admin">
@@ -123,6 +136,38 @@ const router = createBrowserRouter([
         element: (
           <Protected role="admin">
             <CreateProduct />
+          </Protected>
+        ),
+      },
+      {
+        path: '/admin/products/:productId/edit',
+        element: (
+          <Protected role="admin">
+            <EditProduct />
+          </Protected>
+        ),
+      },
+      {
+        path: '/admin/customers',
+        element: (
+          <Protected role="admin">
+            <Customers />
+          </Protected>
+        ),
+      },
+      {
+        path: '/admin/analytics',
+        element: (
+          <Protected role="admin">
+            <Analytics />
+          </Protected>
+        ),
+      },
+      {
+        path: '/admin/settings',
+        element: (
+          <Protected role="admin">
+            <Settings />
           </Protected>
         ),
       },

@@ -14,9 +14,12 @@ export const createProducts = async (productsData) => {
   }
 };
 
-export const getAdminProducts = async () => {
+// params: { search, category, status, page, limit }
+export const getAdminProducts = async (params) => {
   try {
-    const response = await productApiInstance.get('/admin/all-products');
+    const response = await productApiInstance.get('/admin/all-products', {
+      params,
+    });
     return response.data;
   } catch (error) {
     throw error.response?.data || { message: 'Failed to fetch products' };
@@ -39,5 +42,33 @@ export const getProductBySlug = async (slug) => {
     return response.data;
   } catch (error) {
     throw error.response?.data || { message: 'Failed to fetch product' };
+  }
+};
+
+export const getAdminProductById = async (productId) => {
+  try {
+    const response = await productApiInstance.get(`/admin/${productId}`);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Failed to fetch product' };
+  }
+};
+
+// Accepts FormData (full edit) or a plain object (e.g. { status }).
+export const updateProduct = async (productId, productData) => {
+  try {
+    const response = await productApiInstance.patch(`/${productId}`, productData);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Failed to update product' };
+  }
+};
+
+export const deleteProduct = async (productId) => {
+  try {
+    const response = await productApiInstance.delete(`/${productId}`);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Failed to delete product' };
   }
 };

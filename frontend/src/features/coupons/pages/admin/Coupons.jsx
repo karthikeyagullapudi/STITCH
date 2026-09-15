@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { FiTrash2 } from 'react-icons/fi';
-import AdminLayout from '../../../products/components/AdminLayout.jsx';
+import AdminLayout from '../../../admin/components/AdminLayout.jsx';
 import { useCoupon } from '../../hook/useCoupon.js';
 import { formatPrice, formatDate } from '../../../../shared/utils/format.js';
 
