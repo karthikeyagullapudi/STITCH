@@ -10,9 +10,7 @@ import {
   verifyPhoneOtp,
 } from '../service/account.api.js';
 import { setUser } from '../../auth/state/auth.slice.js';
-
-const readError = (error, fallback) =>
-  error?.message || error?.errors?.map((e) => e.msg).join(', ') || fallback;
+import { readError } from '../../../shared/api/request.js';
 
 /* Account data lives on the auth user, so every successful response that
    returns the user is synced straight back into the auth slice. */
@@ -23,7 +21,7 @@ export const useAccount = () => {
     try {
       const data = await call();
       if (data?.user) dispatch(setUser(data.user));
-      return { success: true, message: data?.message };
+      return { success: true, message: data?.message, user: data?.user };
     } catch (error) {
       return { success: false, error: readError(error, fallback) };
     }

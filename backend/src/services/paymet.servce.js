@@ -17,3 +17,6 @@ export const createOrder = async (amount, currency = 'INR') => {
 
   return order;
 };
+
+export const refundPayment = async (paymentId, amount) =>
+  razorpay.payments.refund(paymentId, { amount: Math.round(amount * 100) });

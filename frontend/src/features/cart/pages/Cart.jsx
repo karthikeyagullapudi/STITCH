@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link } from 'react-router';
 import { useSelector } from 'react-redux';
 import {
   FiTrash2,
@@ -13,7 +13,6 @@ import {
 import Header from '../../products/components/Header.jsx';
 import { useCart } from '../hook/useCart.js';
 import { useProduct } from '../../products/hook/useProduct.js';
-import { useRazorpay, RazorpayOrderOptions } from 'react-razorpay';
 
 /* ------------------------------------------------------------------ */
 /* "Your Bag" — follows the STITCH Google-Stitch design, driven by the */
@@ -58,15 +57,10 @@ const Cart = () => {
     handleRemoveCartItem,
     handleClearCart,
     handleAddToCart,
-    handleCheckout,
-    handleVerifyCartOrder,
   } = useCart();
   const { handleGetAllProducts } = useProduct();
   const { items, errors } = useSelector((state) => state.cart);
   const { allProducts } = useSelector((state) => state.product);
-  const { error, isLoading, Razorpay } = useRazorpay();
-  const { user } = useSelector((state) => state.auth);
-  const navigate = useNavigate();
 
   useEffect(() => {
     handleGetCart();
@@ -89,55 +83,6 @@ const Cart = () => {
   const suggestions = (allProducts || [])
     .filter((p) => p && p._id && !cartProductIds.has(p._id))
     .slice(0, 4);
-
-  const handlePayment = async () => {
-    const res = await handleCheckout();
-    if (!res?.success || !res?.order) {
-      alert(res?.error || 'Failed to create order');
-      return;
-    }
-
-    const { order, key } = res;
-
-    const options = {
-      key: key,
-      amount: order.amount,
-      currency: order.currency || 'INR',
-      name: 'STITCH',
-      description: 'Cart Order Checkout',
-      order_id: order.id,
-      handler: async function (response) {
-        const result = await handleVerifyCartOrder({
-          razorpayOrderId: response.razorpay_order_id,
-          razorpayPaymentId: response.razorpay_payment_id,
-          razorpaySignature: response.razorpay_signature,
-        });
-        if (result.success) {
-          // The backend empties the cart once the payment is verified.
-          await handleGetCart();
-          navigate(`/order-success?orderId=${response.razorpay_order_id}`);
-        }
-      },
-      prefill: {
-        name: [user.name?.firstName, user.name?.lastName]
-          .filter(Boolean)
-          .join(' '),
-        email: user.email,
-        contact: user.phone,
-      },
-      theme: {
-        color: '#e5fe02',
-      },
-    };
-
-    const rzp = new Razorpay(options);
-    rzp.on('payment.failed', function (response) {
-      alert(
-        `Payment Failed: ${response.error?.description || 'Transaction unsuccessful.'}`,
-      );
-    });
-    rzp.open();
-  };
 
   return (
     <div className="min-h-screen bg-ink font-body text-paper">
@@ -322,19 +267,6 @@ const Cart = () => {
                 >
                   Continue Shopping
                 </Link>
-                <div className="flex h-12 w-full sm:w-auto">
-                  <input
-                    type="text"
-                    placeholder="PROMO CODE"
-                    className="w-full border border-r-0 border-line bg-panel px-4 font-display text-[11px] uppercase tracking-wide text-paper outline-none transition-colors placeholder:text-faint focus:border-accent sm:w-48"
-                  />
-                  <button
-                    type="button"
-                    className="bg-accent px-8 font-display text-[11px] font-bold uppercase tracking-wide text-ink transition hover:opacity-90"
-                  >
-                    Apply
-                  </button>
-                </div>
               </div>
             </div>
 
@@ -344,33 +276,20 @@ const Cart = () => {
                 <h2 className="border-b border-line pb-4 font-display text-2xl font-semibold uppercase tracking-tight">
                   Order Summary
                 </h2>
-                <div className="space-y-2 py-2">
-                  <div className="flex justify-between text-base">
-                    <span className="uppercase text-muted">Subtotal</span>
-                    <span className="text-paper">
-                      {formatMoney(subtotal, currency)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-base">
-                    <span className="uppercase text-muted">Shipping</span>
-                    <span className="font-bold uppercase text-accent">
-                      Free
-                    </span>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between border-t border-line pt-4">
-                  <span className="font-display text-2xl uppercase">Total</span>
+                <div className="flex items-center justify-between pt-2">
+                  <span className="font-display text-2xl uppercase">
+                    Subtotal
+                  </span>
                   <span className="font-display text-3xl font-bold text-accent">
                     {formatMoney(subtotal, currency)}
                   </span>
                 </div>
-                <button
-                  type="button"
-                  onClick={handlePayment}
-                  className="w-full rounded-[4px] bg-accent py-4 font-display text-base font-extrabold uppercase tracking-[0.2em] text-ink transition hover:brightness-110 active:scale-[0.98]"
+                <Link
+                  to="/checkout"
+                  className="w-full rounded-[4px] bg-accent py-4 text-center font-display text-base font-extrabold uppercase tracking-[0.2em] text-ink transition hover:brightness-110 active:scale-[0.98]"
                 >
                   Checkout
-                </button>
+                </Link>
                 <div className="mt-2 space-y-4">
                   <div className="flex justify-center gap-5 text-muted/60">
                     <FiCreditCard className="h-7 w-7" />
@@ -378,7 +297,7 @@ const Cart = () => {
                     <FiDollarSign className="h-7 w-7" />
                   </div>
                   <p className="border-t border-line pt-4 text-center font-display text-[10px] uppercase tracking-wide text-muted">
-                    Free shipping over ₹5,000. Taxes calculated at checkout.
+                    Shipping, taxes and promo codes are applied at checkout.
                   </p>
                 </div>
               </div>

@@ -86,12 +86,13 @@ const ProductInfo = ({ product, selectedVariant, onSelectVariant }) => {
   const isOutOfStock = currentStock <= 0;
   const isLowStock = !isOutOfStock && currentStock < LOW_STOCK_THRESHOLD;
 
-  const handleAddToBag = async () => {
-    if (!product?._id || isOutOfStock || adding) return;
+  // Adds the current selection to the bag; resolves to null if nothing was sent.
+  const addSelectionToBag = async () => {
+    if (!product?._id || isOutOfStock || adding) return null;
     // The bag is per-user — send guests to log in first.
     if (!user) {
       navigate('/login', { state: { from: window.location.pathname } });
-      return;
+      return null;
     }
     setAdding(true);
     setFeedback(null);
@@ -103,11 +104,25 @@ const ProductInfo = ({ product, selectedVariant, onSelectVariant }) => {
       quantity,
     });
     setAdding(false);
-    setFeedback(
-      result.success
-        ? { type: 'success', message: 'Added to your bag' }
-        : { type: 'error', message: result.error || 'Failed to add to bag' },
-    );
+    if (!result.success) {
+      setFeedback({
+        type: 'error',
+        message: result.error || 'Failed to add to bag',
+      });
+    }
+    return result;
+  };
+
+  const handleAddToBag = async () => {
+    const result = await addSelectionToBag();
+    if (result?.success) {
+      setFeedback({ type: 'success', message: 'Added to your bag' });
+    }
+  };
+
+  const handleBuyNow = async () => {
+    const result = await addSelectionToBag();
+    if (result?.success) navigate('/checkout');
   };
 
   return (
@@ -420,7 +435,9 @@ const ProductInfo = ({ product, selectedVariant, onSelectVariant }) => {
           </button>
           <button
             type="button"
-            className={`${labelCaps} h-14 w-full border border-paper tracking-[0.15em] text-paper transition-all hover:bg-paper hover:text-ink active:scale-[0.98]`}
+            onClick={handleBuyNow}
+            disabled={adding || isOutOfStock}
+            className={`${labelCaps} h-14 w-full border border-paper tracking-[0.15em] text-paper transition-all hover:bg-paper hover:text-ink active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50`}
           >
             Buy it Now
           </button>

@@ -5,8 +5,6 @@ import {
   updateCartItem,
   removeCartItem,
   clearCart,
-  createCartOrder,
-  verifyCartOrder,
 } from '../service/cart.api.js';
 import { setCart, setLoading, setError } from '../state/cart.slice.js';
 
@@ -87,51 +85,11 @@ export const useCart = () => {
     }
   };
 
-  const handleCheckout = async () => {
-    try {
-      dispatch(setLoading(true));
-      dispatch(setError(null));
-      const data = await createCartOrder();
-      return { success: true, order: data?.order, key: data?.key };
-    } catch (error) {
-      const errorMsg = readError(error, 'Failed to create order');
-      dispatch(setError(errorMsg));
-      return { success: false, error: errorMsg };
-    } finally {
-      dispatch(setLoading(false));
-    }
-  };
-
-  const handleVerifyCartOrder = async ({
-    razorpayOrderId,
-    razorpayPaymentId,
-    razorpaySignature,
-  }) => {
-    try {
-      dispatch(setLoading(true));
-      dispatch(setError(null));
-      const data = await verifyCartOrder({
-        razorpayOrderId,
-        razorpayPaymentId,
-        razorpaySignature,
-      });
-      return { success: true, payment: data?.payment };
-    } catch (error) {
-      const errorMsg = readError(error, 'Failed to verify order');
-      dispatch(setError(errorMsg));
-      return { success: false, error: errorMsg };
-    } finally {
-      dispatch(setLoading(false));
-    }
-  };
-
   return {
     handleGetCart,
     handleAddToCart,
     handleUpdateCartItem,
     handleRemoveCartItem,
     handleClearCart,
-    handleCheckout,
-    handleVerifyCartOrder,
   };
 };

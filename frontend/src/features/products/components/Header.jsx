@@ -194,6 +194,13 @@ const Header = () => {
                 >
                   Account
                 </Link>
+                <Link
+                  to="/orders"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`${labelCaps} text-sm text-muted transition-colors hover:text-accent`}
+                >
+                  Orders
+                </Link>
                 <button
                   type="button"
                   onClick={onLogout}

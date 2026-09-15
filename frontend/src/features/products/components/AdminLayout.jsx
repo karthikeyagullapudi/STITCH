@@ -7,6 +7,7 @@ import {
   FiBarChart2,
   FiSettings,
   FiChevronDown,
+  FiTag,
 } from 'react-icons/fi';
 
 /**
@@ -20,7 +21,8 @@ const navItems = [
   { label: 'Dashboard', icon: FiGrid, to: '#' },
   { label: 'Products', icon: FiBox, to: '/admin/products' },
   { label: 'Create', icon: FiBox, to: '/admin/products/new' },
-  { label: 'Orders', icon: FiShoppingBag, to: '#' },
+  { label: 'Orders', icon: FiShoppingBag, to: '/admin/orders' },
+  { label: 'Coupons', icon: FiTag, to: '/admin/coupons' },
   { label: 'Customers', icon: FiUsers, to: '#' },
   { label: 'Analytics', icon: FiBarChart2, to: '#' },
   { label: 'Settings', icon: FiSettings, to: '#' },

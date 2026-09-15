@@ -1,5 +1,5 @@
 import { useSelector } from 'react-redux';
-import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import Header from '../../products/components/Header.jsx';
 import Footer from '../../../shared/components/Footer.jsx';
 import ProfileCard from '../components/ProfileCard.jsx';
@@ -31,13 +31,21 @@ const Account = () => {
               Hi, {user.name?.firstName}
             </h1>
           </div>
-          <button
-            type="button"
-            onClick={onLogout}
-            className="font-display text-[11px] font-bold uppercase tracking-[0.12em] text-muted transition-colors hover:text-red-400"
-          >
-            Log Out
-          </button>
+          <div className="flex items-center gap-6">
+            <Link
+              to="/orders"
+              className="border border-paper px-6 py-3 font-display text-[11px] font-bold uppercase tracking-[0.12em] text-paper transition-all hover:bg-paper hover:text-ink"
+            >
+              My Orders
+            </Link>
+            <button
+              type="button"
+              onClick={onLogout}
+              className="font-display text-[11px] font-bold uppercase tracking-[0.12em] text-muted transition-colors hover:text-red-400"
+            >
+              Log Out
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">

@@ -1,0 +1,60 @@
+import mongoose from 'mongoose';
+import { body, param, validationResult } from 'express-validator';
+
+const validate = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+  next();
+};
+
+const isValidObjectId = (label) => (value) => {
+  if (!mongoose.Types.ObjectId.isValid(value)) {
+    throw new Error(`${label} is not a valid id`);
+  }
+  return true;
+};
+
+const couponCode = body('couponCode')
+  .optional({ values: 'falsy' })
+  .isString()
+  .withMessage('Promo code must be text')
+  .trim();
+
+export const orderSummaryValidator = [couponCode, validate];
+
+export const checkoutValidator = [
+  body('addressId')
+    .notEmpty()
+    .withMessage('Choose a shipping address')
+    .bail()
+    .custom(isValidObjectId('Address id')),
+  couponCode,
+  validate,
+];
+
+export const verifyOrderValidator = [
+  body('razorpayOrderId').notEmpty().withMessage('Razorpay order id is required'),
+  body('razorpayPaymentId')
+    .notEmpty()
+    .withMessage('Razorpay payment id is required'),
+  body('razorpaySignature')
+    .notEmpty()
+    .withMessage('Razorpay signature is required'),
+
+  validate,
+];
+
+export const orderIdParamValidator = [
+  param('orderId').custom(isValidObjectId('Order id')),
+  validate,
+];
+
+export const updateOrderStatusValidator = [
+  param('orderId').custom(isValidObjectId('Order id')),
+  body('status')
+    .isIn(['shipped', 'delivered', 'cancelled'])
+    .withMessage('Status must be shipped, delivered or cancelled'),
+  validate,
+];

@@ -56,6 +56,9 @@ export const Config = {
   RAZORPAY_API_KEY: process.env.RAZORPAY_API_KEY,
   RAZORPAY_API_SECRET: process.env.RAZORPAY_API_SECRET,
 
+  // Optional — webhook events are rejected until this is set.
+  RAZORPAY_WEBHOOK_SECRET: process.env.RAZORPAY_WEBHOOK_SECRET,
+
   // Optional — without these, emails and SMS are printed to the console.
   SMTP_HOST: process.env.SMTP_HOST,
   SMTP_PORT: process.env.SMTP_PORT,

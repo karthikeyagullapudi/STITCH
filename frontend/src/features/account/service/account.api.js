@@ -1,19 +1,10 @@
 import axios from 'axios';
+import { request } from '../../../shared/api/request.js';
 
 const accountApiInstance = axios.create({
   baseURL: '/api/users/me',
   withCredentials: true,
 });
-
-// Every request surfaces the server's JSON error body (or a fallback message).
-const request = async (call, fallback) => {
-  try {
-    const response = await call();
-    return response.data;
-  } catch (error) {
-    throw error.response?.data || { message: fallback };
-  }
-};
 
 export const updateProfile = (payload) =>
   request(() => accountApiInstance.patch('/', payload), 'Failed to update profile');

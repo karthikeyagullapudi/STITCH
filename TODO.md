@@ -46,15 +46,15 @@ Everything incomplete or broken across the app, in order of urgency.
 ## 2. Missing big features
 
 ### Orders & checkout
-- [ ] Order model (Payment is doubling as one) + status lifecycle: processing → shipped → delivered / cancelled.
-- [ ] Pages: order success (checkout already redirects to `/order-success`, which doesn't exist yet), my orders, order detail, admin Orders.
-- [ ] Checkout step with shipping address + address book.
-- [ ] Stock check at checkout; decrement stock after payment.
-- [ ] Razorpay webhook (tab closed after paying → payment stuck pending, cart not cleared); backend handling of failed payments.
-- [ ] Real tax & shipping logic (`chargeTax` is stored but unused; the fake 18% "Estimated Tax" row was removed; "free shipping over ₹5,000" copy has no logic).
-- [ ] Promo codes (input + Apply do nothing; no coupon backend).
-- [ ] "Buy it Now" button.
-- [ ] Cancellations & refunds.
+- [x] Order model (Payment is doubling as one) + status lifecycle: processing → shipped → delivered / cancelled.
+- [x] Pages: order confirmation (shown on the order page after payment), my orders, order detail, admin Orders, admin Coupons.
+- [x] Checkout step with shipping address + address book.
+- [x] Stock check at checkout; decrement stock after payment.
+- [x] Razorpay webhook (tab closed after paying → payment stuck pending, cart not cleared); backend handling of failed payments.
+- [x] Real tax & shipping logic (`chargeTax` is stored but unused; "free shipping over ₹5,000" copy has no logic).
+- [x] Promo codes (input + Apply do nothing; no coupon backend).
+- [x] "Buy it Now" button.
+- [x] Cancellations & refunds.
 
 ### Admin panel
 - [ ] Edit product page, delete / archive, manage variants after creation, delete images from ImageKit.

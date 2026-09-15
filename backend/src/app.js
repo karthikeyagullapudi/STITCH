@@ -11,6 +11,9 @@ import cartRouter from './routes/cart.routes.js';
 import wishlistRouter from './routes/wishlist.routes.js';
 import userRouter from './routes/user.routes.js';
 import newsletterRouter from './routes/newsletter.routes.js';
+import orderRouter from './routes/order.routes.js';
+import couponRouter from './routes/coupon.routes.js';
+import settingsRouter from './routes/settings.routes.js';
 
 const app = express();
 
@@ -36,7 +39,14 @@ app.use(
     credentials: true,
   }),
 );
-app.use(express.json());
+app.use(
+  express.json({
+    // Razorpay webhooks are signed over the exact raw body.
+    verify: (req, res, buffer) => {
+      req.rawBody = buffer;
+    },
+  }),
+);
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
 app.use(cookieParser());
@@ -61,4 +71,7 @@ app.use('/api/cart', cartRouter);
 app.use('/api/wishlist', wishlistRouter);
 app.use('/api/users', userRouter);
 app.use('/api/newsletter', newsletterRouter);
+app.use('/api/orders', orderRouter);
+app.use('/api/coupons', couponRouter);
+app.use('/api/settings', settingsRouter);
 export default app;

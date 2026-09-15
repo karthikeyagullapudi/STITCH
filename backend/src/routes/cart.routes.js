@@ -6,14 +6,11 @@ import {
   updateCartItem,
   removeCartItem,
   clearCart,
-  createOrderController,
-  verifyOrderController,
 } from '../controller/cart.controller.js';
 import {
   addToCartValidator,
   updateCartItemValidator,
   cartItemParamValidator,
-  verifyOrderValidator,
 } from '../validator/cart.validator.js';
 
 const cartRouter = Router();
@@ -32,13 +29,6 @@ cartRouter.delete(
   protect,
   cartItemParamValidator,
   removeCartItem,
-);
-cartRouter.post('/payment/create/order', protect, createOrderController);
-cartRouter.post(
-  '/payment/verify/order',
-  protect,
-  verifyOrderValidator,
-  verifyOrderController,
 );
 
 export default cartRouter;
