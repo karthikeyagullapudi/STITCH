@@ -2,11 +2,19 @@ import { Router } from 'express';
 import {
   loginValidation,
   registerValidation,
+  forgotPasswordValidation,
+  resetPasswordValidation,
+  tokenParamValidation,
 } from '../validator/auth.validator.js';
 import {
   userLogin,
   userRegister,
+  userLogout,
   googleAuthCallBack,
+  forgotPassword,
+  resetPassword,
+  verifyEmail,
+  resendVerificationEmail,
 } from '../controller/auth.controller.js';
 import { protect } from '../middleware/auth.middleware.js';
 import passport from 'passport';
@@ -16,6 +24,7 @@ const authRouter = Router();
 
 authRouter.post('/register', registerValidation, userRegister);
 authRouter.post('/login', loginValidation, userLogin);
+authRouter.post('/logout', userLogout);
 authRouter.get(
   '/google',
   passport.authenticate('google', {
@@ -38,5 +47,14 @@ authRouter.get('/me', protect, (req, res) => {
     user: req.user,
   });
 });
+
+authRouter.post('/forgot-password', forgotPasswordValidation, forgotPassword);
+authRouter.post(
+  '/reset-password/:token',
+  resetPasswordValidation,
+  resetPassword,
+);
+authRouter.get('/verify-email/:token', tokenParamValidation, verifyEmail);
+authRouter.post('/verify-email/resend', protect, resendVerificationEmail);
 
 export default authRouter;

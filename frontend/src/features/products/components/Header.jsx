@@ -1,9 +1,16 @@
 import { useEffect, useState } from 'react';
-import { Link, useLocation } from 'react-router';
+import { Link, useLocation, useNavigate } from 'react-router';
 import { useSelector } from 'react-redux';
-import { FiShoppingBag, FiHeart, FiMenu, FiX } from 'react-icons/fi';
+import {
+  FiShoppingBag,
+  FiHeart,
+  FiMenu,
+  FiX,
+  FiUser,
+} from 'react-icons/fi';
 import { useCart } from '../../cart/hook/useCart.js';
 import { useWishlist } from '../../wishlist/hook/useWishlist.js';
+import { useAuth } from '../../auth/hook/useAuth.js';
 
 const navLinks = [
   { name: 'New', path: '/' },
@@ -18,25 +25,36 @@ const labelCaps =
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const { handleGetCart } = useCart();
   const { handleGetWishlist } = useWishlist();
+  const { handleLogout } = useAuth();
+  const user = useSelector((state) => state.auth.user);
   const { items } = useSelector((state) => state.cart);
   const wishlistCount = useSelector((state) => state.wishlist.items.length);
   const cartCount = items.reduce((sum, item) => sum + item.quantity, 0);
 
-  // Keep the bag and wishlist badges in sync with the server on load. The
-  // wishlist also has to be loaded for the hearts on product cards to know
-  // which products are already saved.
+  // Keep the bag and wishlist badges in sync with the server for signed-in
+  // users. The wishlist also has to be loaded for the hearts on product cards
+  // to know which products are already saved.
   useEffect(() => {
+    if (!user) return;
     handleGetCart();
     handleGetWishlist();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?._id]);
 
   const isLinkActive = (path) => {
     if (path === '/') {
       return location.pathname === '/';
     }
     return location.pathname.startsWith(path);
+  };
+
+  const onLogout = async () => {
+    setMobileMenuOpen(false);
+    await handleLogout();
+    navigate('/');
   };
 
   return (
@@ -72,12 +90,34 @@ const Header = () => {
 
         {/* Right user actions */}
         <div className="flex items-center gap-6">
-          <Link
-            to="/login"
-            className={`${labelCaps} hidden text-muted transition-colors hover:text-accent sm:block`}
-          >
-            Login
-          </Link>
+          {user?.role === 'admin' && (
+            <Link
+              to="/admin/products"
+              className={`${labelCaps} hidden text-muted transition-colors hover:text-accent sm:block`}
+            >
+              Admin
+            </Link>
+          )}
+          {user ? (
+            <Link
+              to="/account"
+              aria-label="Account"
+              className={`hidden transition-colors sm:block ${
+                isLinkActive('/account')
+                  ? 'text-accent'
+                  : 'text-paper hover:text-accent'
+              }`}
+            >
+              <FiUser className="h-5 w-5" />
+            </Link>
+          ) : (
+            <Link
+              to="/login"
+              className={`${labelCaps} hidden text-muted transition-colors hover:text-accent sm:block`}
+            >
+              Login
+            </Link>
+          )}
           <Link
             to="/wishlist"
             aria-label="Wishlist"
@@ -136,13 +176,41 @@ const Header = () => {
                 </Link>
               );
             })}
-            <Link
-              to="/login"
-              onClick={() => setMobileMenuOpen(false)}
-              className={`${labelCaps} pt-2 text-sm text-muted transition-colors hover:text-accent`}
-            >
-              Login
-            </Link>
+            {user ? (
+              <>
+                {user.role === 'admin' && (
+                  <Link
+                    to="/admin/products"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`${labelCaps} pt-2 text-sm text-muted transition-colors hover:text-accent`}
+                  >
+                    Admin
+                  </Link>
+                )}
+                <Link
+                  to="/account"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`${labelCaps} pt-2 text-sm text-muted transition-colors hover:text-accent`}
+                >
+                  Account
+                </Link>
+                <button
+                  type="button"
+                  onClick={onLogout}
+                  className={`${labelCaps} text-left text-sm text-muted transition-colors hover:text-red-400`}
+                >
+                  Log Out
+                </button>
+              </>
+            ) : (
+              <Link
+                to="/login"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`${labelCaps} pt-2 text-sm text-muted transition-colors hover:text-accent`}
+              >
+                Login
+              </Link>
+            )}
           </nav>
         </div>
       )}

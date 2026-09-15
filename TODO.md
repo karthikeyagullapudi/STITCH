@@ -80,13 +80,13 @@ Everything incomplete or broken across the app, in order of urgency.
 - [ ] "Notify Me" (no backend); real recommendations.
 
 ### Account & auth
-- [ ] Logout (backend + frontend); header shows "Login" even when logged in; header fetches cart/wishlist for guests (401s).
-- [ ] Forgot / reset password.
-- [ ] Profile / account page (name, phone, avatar, addresses, orders).
-- [ ] Email & phone verification.
-- [ ] Enforce user `status` (blocked users can log in).
-- [ ] Login: show-password toggle, Remember me, Apple buttons, Terms/Privacy links, newsletter checkbox.
-- [ ] Redirect back to `state.from` after login.
+- [x] Logout (backend + frontend); header shows "Login" even when logged in; header fetches cart/wishlist for guests (401s).
+- [x] Forgot / reset password.
+- [x] Profile / account page (name, phone, avatar, addresses).
+- [x] Email & phone verification.
+- [x] Enforce user `status` (blocked users can log in).
+- [x] Login: show-password toggle, Remember me, Apple buttons (removed), Terms/Privacy links, newsletter checkbox.
+- [x] Redirect back to `state.from` after login.
 
 ---
 

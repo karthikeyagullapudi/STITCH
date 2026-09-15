@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router';
 import { FiEye, FiUser, FiShield } from 'react-icons/fi';
-import { FaGoogle, FaApple } from 'react-icons/fa';
+import { FaGoogle } from 'react-icons/fa';
 import { useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useAuth } from '../hook/useAuth';
@@ -25,6 +25,7 @@ const Register = () => {
     phone: '',
     password: '',
     confirmPassword: '',
+    newsletter: false,
   });
   const [accountType, setAccountType] = useState('user');
   const [showPassword, setShowPassword] = useState(false);
@@ -36,10 +37,10 @@ const Register = () => {
   const navigate = useNavigate();
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: type === 'checkbox' ? checked : value,
     }));
   };
 
@@ -61,10 +62,18 @@ const Register = () => {
       },
       phone: formData.phone,
       role: accountType,
+      newsletter: formData.newsletter,
     });
 
     if (result && result.success) {
-      navigate('/login');
+      navigate('/login', {
+        state: {
+          message:
+            accountType === 'admin'
+              ? 'Admin account created. An existing admin must approve it before you can sign in.'
+              : 'Account created. Check your email to verify your address, then sign in.',
+        },
+      });
     }
   };
 
@@ -247,24 +256,32 @@ const Register = () => {
                   <input type="checkbox" name="agreeToTerms" required className="stitch-checkbox mt-0.5" />
                   <span className="text-sm leading-snug text-muted">
                     I agree to the{' '}
-                    <a
-                      href="#"
+                    <Link
+                      to="/pages/terms"
+                      target="_blank"
                       className="text-accent underline-offset-2 hover:underline"
                     >
                       Terms of Service
-                    </a>{' '}
+                    </Link>{' '}
                     and{' '}
-                    <a
-                      href="#"
+                    <Link
+                      to="/pages/privacy"
+                      target="_blank"
                       className="text-accent underline-offset-2 hover:underline"
                     >
                       Privacy Policy
-                    </a>
+                    </Link>
                     .
                   </span>
                 </label>
                 <label className="flex cursor-pointer items-start gap-3 select-none">
-                  <input type="checkbox" name="subscribeToNewsletter" className="stitch-checkbox mt-0.5" />
+                  <input
+                    type="checkbox"
+                    name="newsletter"
+                    checked={formData.newsletter}
+                    onChange={handleChange}
+                    className="stitch-checkbox mt-0.5"
+                  />
                   <span className="text-sm leading-snug text-muted">
                     Subscribe to drop alerts &amp; newsletter.
                   </span>
@@ -296,22 +313,16 @@ const Register = () => {
                   <div className="h-px flex-1 bg-line" />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <button
-                    type="button"
-                    className={socialBtnCls}
-                    onClick={() => {
-                      window.location.href = 'http://localhost:3000/api/auth/google';
-                    }}
-                  >
-                    <FaGoogle className="h-4 w-4" />
-                    Google
-                  </button>
-                  <button type="button" className={socialBtnCls}>
-                    <FaApple className="h-4 w-4" />
-                    Apple
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  className={`${socialBtnCls} w-full`}
+                  onClick={() => {
+                    window.location.href = 'http://localhost:3000/api/auth/google';
+                  }}
+                >
+                  <FaGoogle className="h-4 w-4" />
+                  Google
+                </button>
               </>
             )}
 

@@ -11,14 +11,7 @@ import {
   createProductValidator,
   addProductVariantsValidator,
 } from '../validator/product.validator.js';
-import multer from 'multer';
-
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: {
-    fileSize: 5 * 1024 * 1024,
-  },
-});
+import { upload } from '../middleware/upload.middleware.js';
 
 const productRouter = Router();
 

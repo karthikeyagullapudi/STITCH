@@ -9,6 +9,12 @@ import Wishlist from '../features/wishlist/pages/Wishlist.jsx';
 import MensCollection from '../features/products/pages/user/AllProducts.jsx';
 import Product from '../features/products/pages/user/Product.jsx';
 import Protected from '../features/auth/components/Protected.jsx';
+import ForgotPassword from '../features/auth/pages/ForgotPassword.jsx';
+import ResetPassword from '../features/auth/pages/ResetPassword.jsx';
+import VerifyEmail from '../features/auth/pages/VerifyEmail.jsx';
+import Account from '../features/account/pages/Account.jsx';
+import InfoPage from '../shared/pages/InfoPage.jsx';
+import NotFound from '../shared/pages/NotFound.jsx';
 
 const router = createBrowserRouter([
   {
@@ -22,6 +28,30 @@ const router = createBrowserRouter([
   {
     path: '/register',
     element: <Register />,
+  },
+  {
+    path: '/forgot-password',
+    element: <ForgotPassword />,
+  },
+  {
+    path: '/reset-password/:token',
+    element: <ResetPassword />,
+  },
+  {
+    path: '/verify-email/:token',
+    element: <VerifyEmail />,
+  },
+  {
+    path: '/account',
+    element: (
+      <Protected role="user">
+        <Account />
+      </Protected>
+    ),
+  },
+  {
+    path: '/pages/:slug',
+    element: <InfoPage />,
   },
   {
     path: '/cart',
@@ -68,6 +98,10 @@ const router = createBrowserRouter([
         ),
       },
     ],
+  },
+  {
+    path: '*',
+    element: <NotFound />,
   },
 ]);
 

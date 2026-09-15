@@ -55,4 +55,14 @@ export const Config = {
     process.env.IMAGEKIT_PRIVATE_KEY || process.env.IMAGE_KIT_PRIVATE_KEY,
   RAZORPAY_API_KEY: process.env.RAZORPAY_API_KEY,
   RAZORPAY_API_SECRET: process.env.RAZORPAY_API_SECRET,
+
+  // Optional — without these, emails and SMS are printed to the console.
+  SMTP_HOST: process.env.SMTP_HOST,
+  SMTP_PORT: process.env.SMTP_PORT,
+  SMTP_USER: process.env.SMTP_USER,
+  SMTP_PASS: process.env.SMTP_PASS,
+  EMAIL_FROM: process.env.EMAIL_FROM || 'STITCH <no-reply@stitch.local>',
+  TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID,
+  TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN,
+  TWILIO_PHONE_NUMBER: process.env.TWILIO_PHONE_NUMBER,
 };

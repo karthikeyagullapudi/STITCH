@@ -1,9 +1,10 @@
 import React from 'react';
 import { useSelector } from 'react-redux';
-import { Navigate } from 'react-router';
+import { Navigate, useLocation } from 'react-router';
 
 const Protected = ({ children, role = 'user' }) => {
   const { user, loading } = useSelector((state) => state.auth);
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -19,7 +20,14 @@ const Protected = ({ children, role = 'user' }) => {
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    // Login sends the user back here once they've signed in.
+    return (
+      <Navigate
+        to="/login"
+        replace
+        state={{ from: location.pathname + location.search }}
+      />
+    );
   }
 
   if (role === 'admin' && user.role !== 'admin') {

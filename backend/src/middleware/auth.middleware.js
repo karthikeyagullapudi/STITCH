@@ -24,6 +24,12 @@ export const protect = async (req, res, next) => {
         message: 'Not authorized, user not found',
       });
     }
+    if (!req.user.status) {
+      return res.status(403).json({
+        success: false,
+        message: 'Your account has been blocked',
+      });
+    }
 
     next();
   } catch (error) {
@@ -51,6 +57,12 @@ export const authAdmin = async (req, res, next) => {
       return res.status(404).json({
         success: false,
         message: 'Not authorized, user not found',
+      });
+    }
+    if (!user.status) {
+      return res.status(403).json({
+        success: false,
+        message: 'Your account has been blocked',
       });
     }
     if (user.role !== 'admin') {

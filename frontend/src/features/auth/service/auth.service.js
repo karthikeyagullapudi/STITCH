@@ -14,6 +14,7 @@ export const register = async ({
   name: { firstName, lastName },
   phone,
   role,
+  newsletter,
 }) => {
   try {
     const response = await authApiInstance.post('/auth/register', {
@@ -25,6 +26,7 @@ export const register = async ({
       },
       phone,
       role,
+      newsletter,
     });
     return response.data;
   } catch (error) {
@@ -32,12 +34,13 @@ export const register = async ({
   }
 };
 
-export const login = async ({ email, password, role }) => {
+export const login = async ({ email, password, role, remember }) => {
   try {
     const response = await authApiInstance.post('/auth/login', {
       email,
       password,
       role,
+      remember,
     });
     return response.data;
   } catch (error) {
@@ -52,4 +55,34 @@ export const getMe = async () => {
   } catch (error) {
     throw error;
   }
+};
+
+export const logout = async () => {
+  const response = await authApiInstance.post('/auth/logout');
+  return response.data;
+};
+
+export const forgotPassword = async (email) => {
+  const response = await authApiInstance.post('/auth/forgot-password', {
+    email,
+  });
+  return response.data;
+};
+
+export const resetPassword = async (token, password) => {
+  const response = await authApiInstance.post(
+    `/auth/reset-password/${token}`,
+    { password },
+  );
+  return response.data;
+};
+
+export const verifyEmail = async (token) => {
+  const response = await authApiInstance.get(`/auth/verify-email/${token}`);
+  return response.data;
+};
+
+export const resendVerificationEmail = async () => {
+  const response = await authApiInstance.post('/auth/verify-email/resend');
+  return response.data;
 };

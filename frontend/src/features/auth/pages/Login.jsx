@@ -1,6 +1,6 @@
-import { Link, useNavigate } from 'react-router';
-import { FiEye, FiUser, FiShield } from 'react-icons/fi';
-import { FaGoogle, FaApple } from 'react-icons/fa';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router';
+import { FiEye, FiEyeOff, FiUser, FiShield } from 'react-icons/fi';
+import { FaGoogle } from 'react-icons/fa';
 import { useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useAuth } from '../hook/useAuth';
@@ -15,6 +15,12 @@ const roleTabs = [
   { role: 'admin', label: 'Admin', icon: FiShield },
 ];
 
+// Errors the Google OAuth callback redirects back with.
+const redirectErrors = {
+  google_auth_failed: 'Google sign-in failed. Please try again.',
+  account_blocked: 'Your account has been blocked. Please contact support.',
+};
+
 const Login = () => {
   const [formData, setFormData] = useState({
     email: '',
@@ -22,9 +28,14 @@ const Login = () => {
     remember: false,
   });
   const [loginAs, setLoginAs] = useState('user');
+  const [showPassword, setShowPassword] = useState(false);
   const { handleLogin } = useAuth();
   const { loading, errors } = useSelector((state) => state.auth);
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const notice = location.state?.message;
+  const error = errors || redirectErrors[searchParams.get('error')];
 
   const handleChange = (e) => {
     setFormData((prev) => {
@@ -42,9 +53,16 @@ const Login = () => {
       email: formData.email,
       password: formData.password,
       role: loginAs,
+      remember: formData.remember,
     });
     if (result.success) {
-      navigate(result.user.role === 'admin' ? '/admin/products' : '/');
+      // Send users back to the page that asked them to sign in.
+      navigate(
+        result.user.role === 'admin'
+          ? '/admin/products'
+          : location.state?.from || '/',
+        { replace: true },
+      );
     }
   };
 
@@ -112,10 +130,17 @@ const Login = () => {
               ))}
             </div>
 
+            {/* Notice (e.g. after registering) */}
+            {notice && !error && (
+              <div className="mb-6 rounded-[4px] border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-400">
+                {notice}
+              </div>
+            )}
+
             {/* Error alert */}
-            {errors && (
+            {error && (
               <div className="mb-6 rounded-[4px] border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-400">
-                {errors}
+                {error}
               </div>
             )}
 
@@ -142,7 +167,7 @@ const Login = () => {
                 <div className="relative">
                   <input
                     id="login-password"
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     placeholder="••••••••"
                     className={`${inputCls} pr-12`}
                     name="password"
@@ -151,10 +176,15 @@ const Login = () => {
                   />
                   <button
                     type="button"
-                    aria-label="Show password"
+                    onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
                     className="absolute top-1/2 right-4 -translate-y-1/2 text-muted transition-colors hover:text-paper"
                   >
-                    <FiEye className="h-5 w-5" />
+                    {showPassword ? (
+                      <FiEyeOff className="h-5 w-5" />
+                    ) : (
+                      <FiEye className="h-5 w-5" />
+                    )}
                   </button>
                 </div>
               </div>
@@ -172,12 +202,12 @@ const Login = () => {
                     Remember me
                   </span>
                 </label>
-                <a
-                  href="#"
+                <Link
+                  to="/forgot-password"
                   className="font-display text-xs font-bold uppercase tracking-[0.1em] text-accent underline-offset-4 hover:underline"
                 >
                   Forgot password?
-                </a>
+                </Link>
               </div>
 
               <button
@@ -204,25 +234,16 @@ const Login = () => {
                   <div className="h-px flex-1 bg-line" />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      handleGoogleSignIn();
-                    }}
-                    className="flex h-12 items-center justify-center gap-2 rounded-[4px] border border-line font-display text-xs font-bold uppercase tracking-[0.1em] text-paper transition-colors hover:bg-field"
-                  >
-                    <FaGoogle className="h-4 w-4" />
-                    Google
-                  </button>
-                  <button
-                    type="button"
-                    className="flex h-12 items-center justify-center gap-2 rounded-[4px] border border-line font-display text-xs font-bold uppercase tracking-[0.1em] text-paper transition-colors hover:bg-field"
-                  >
-                    <FaApple className="h-4 w-4" />
-                    Apple
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleGoogleSignIn();
+                  }}
+                  className="flex h-12 w-full items-center justify-center gap-2 rounded-[4px] border border-line font-display text-xs font-bold uppercase tracking-[0.1em] text-paper transition-colors hover:bg-field"
+                >
+                  <FaGoogle className="h-4 w-4" />
+                  Google
+                </button>
               </>
             )}
 
