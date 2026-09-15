@@ -12,12 +12,7 @@ import {
 import { setCart } from '../../cart/state/cart.slice.js';
 import { setWishlist } from '../../wishlist/state/wishlist.slice.js';
 import { useDispatch } from 'react-redux';
-
-const readError = (error, fallback) =>
-  error?.response?.data?.message ||
-  error?.response?.data?.errors?.map((e) => e.msg).join(', ') ||
-  error?.message ||
-  fallback;
+import { readError } from '../../../shared/api/request.js';
 
 export const useAuth = () => {
   const dispatch = useDispatch();

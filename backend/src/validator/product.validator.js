@@ -1,21 +1,14 @@
 import mongoose from 'mongoose';
-import { body, param, validationResult } from 'express-validator';
+import { body, param } from 'express-validator';
 import {
   PRODUCT_STATUS,
   CURRENCIES,
   SIZES,
   GENDERS,
 } from '../model/product.model.js';
+import { validate } from './common.validator.js';
 
 const HEX_COLOR = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
-
-const validate = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
-  next();
-};
 
 const parseJson = (value) => {
   if (value === undefined || value === null || value === '') return value;

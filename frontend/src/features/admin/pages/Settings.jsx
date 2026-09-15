@@ -165,24 +165,24 @@ const Settings = () => {
                 <div className="flex items-center gap-4">
                   <span
                     className={`inline-block border px-2 py-1 font-display text-[10px] font-bold uppercase tracking-[0.1em] ${
-                      admin.adminAproved
+                      admin.adminApproved
                         ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
                         : 'border-amber-500/30 bg-amber-500/10 text-amber-400'
                     }`}
                   >
-                    {admin.adminAproved ? 'Approved' : 'Pending'}
+                    {admin.adminApproved ? 'Approved' : 'Pending'}
                   </span>
                   {admin._id !== currentUser?._id && (
                     <button
                       type="button"
-                      onClick={() => setApproval(admin, !admin.adminAproved)}
+                      onClick={() => setApproval(admin, !admin.adminApproved)}
                       className={`font-display text-[11px] font-bold uppercase tracking-[0.12em] ${
-                        admin.adminAproved
+                        admin.adminApproved
                           ? 'text-muted hover:text-red-400'
                           : 'text-accent hover:brightness-110'
                       }`}
                     >
-                      {admin.adminAproved ? 'Revoke' : 'Approve'}
+                      {admin.adminApproved ? 'Revoke' : 'Approve'}
                     </button>
                   )}
                 </div>

@@ -13,16 +13,13 @@ import {
 import Header from '../../products/components/Header.jsx';
 import { useCart } from '../hook/useCart.js';
 import { useProduct } from '../../products/hook/useProduct.js';
+import Footer from '../../../shared/components/Footer.jsx';
+import { formatPrice } from '../../../shared/utils/format.js';
 
 /* ------------------------------------------------------------------ */
 /* "Your Bag" — follows the STITCH Google-Stitch design, driven by the */
 /* live cart state from the cart feature.                              */
 /* ------------------------------------------------------------------ */
-
-const currencySymbols = { INR: '₹', USD: '$', EUR: '€', GBP: '£', JPY: '¥' };
-
-const formatMoney = (amount, currency = 'INR') =>
-  `${currencySymbols[currency] || '₹'}${Number(amount || 0).toLocaleString()}`;
 
 // Prefer the selected variant's price/image, else fall back to the product's.
 const getVariant = (item) =>
@@ -65,6 +62,7 @@ const Cart = () => {
   useEffect(() => {
     handleGetCart();
     handleGetAllProducts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Guard against line items whose product was removed after being added.
@@ -232,14 +230,14 @@ const Cart = () => {
                         </div>
                         <div className="text-right">
                           <p className="font-display text-2xl text-paper">
-                            {formatMoney(
+                            {formatPrice(
                               price.amount * item.quantity,
                               price.currency,
                             )}
                           </p>
                           {item.quantity > 1 && (
                             <p className="font-display text-[11px] text-muted">
-                              {formatMoney(price.amount, price.currency)} each
+                              {formatPrice(price.amount, price.currency)} each
                             </p>
                           )}
                         </div>
@@ -281,7 +279,7 @@ const Cart = () => {
                     Subtotal
                   </span>
                   <span className="font-display text-3xl font-bold text-accent">
-                    {formatMoney(subtotal, currency)}
+                    {formatPrice(subtotal, currency)}
                   </span>
                 </div>
                 <Link
@@ -354,7 +352,7 @@ const Cart = () => {
                     {p.title}
                   </Link>
                   <p className="mt-1 font-display text-sm text-accent">
-                    {formatMoney(p.price?.amount, p.price?.currency)}
+                    {formatPrice(p.price?.amount, p.price?.currency)}
                   </p>
                 </div>
               ))}
@@ -363,28 +361,7 @@ const Cart = () => {
         )}
       </main>
 
-      {/* Footer */}
-      <footer className="mt-16 w-full border-t border-line bg-surface py-16">
-        <div className="mx-auto flex max-w-[1440px] flex-col items-center justify-between gap-4 px-6 md:flex-row">
-          <div className="font-display text-2xl font-bold uppercase tracking-tight text-paper">
-            STITCH
-          </div>
-          <nav className="flex gap-8">
-            {['Archive', 'Stores', 'Shipping', 'Legal'].map((l) => (
-              <a
-                key={l}
-                href="#"
-                className="font-display text-xs uppercase tracking-[0.15em] text-muted transition-colors hover:text-paper"
-              >
-                {l}
-              </a>
-            ))}
-          </nav>
-          <p className="font-display text-[10px] uppercase tracking-[0.15em] text-muted">
-            © 2024 STITCH. Engineered for the fringe.
-          </p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };

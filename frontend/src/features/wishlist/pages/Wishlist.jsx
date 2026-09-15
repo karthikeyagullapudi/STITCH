@@ -7,6 +7,8 @@ import ProductCard from '../../products/components/ProductCard.jsx';
 import { useWishlist } from '../hook/useWishlist.js';
 import { useCart } from '../../cart/hook/useCart.js';
 import { useProduct } from '../../products/hook/useProduct.js';
+import Footer from '../../../shared/components/Footer.jsx';
+import { formatPrice } from '../../../shared/utils/format.js';
 
 /* ------------------------------------------------------------------ */
 /* "Wishlist" — follows the STITCH Google-Stitch design, driven by the */
@@ -15,8 +17,6 @@ import { useProduct } from '../../products/hook/useProduct.js';
 
 const labelCaps =
   'font-display text-[11px] font-bold uppercase tracking-[0.12em]';
-
-const formatMoney = (amount) => `₹${Number(amount).toLocaleString('en-IN')}`;
 
 // Prefer the saved variant's price/image/stock, else fall back to the product's.
 const getVariant = (item) =>
@@ -294,11 +294,11 @@ const Wishlist = () => {
 
                 <div className="mb-3 flex items-baseline gap-2">
                   <span className="font-display text-lg font-semibold text-accent">
-                    {formatMoney(item.price)}
+                    {formatPrice(item.price)}
                   </span>
                   {item.onSale && (
                     <span className="font-display text-sm text-faint line-through">
-                      {formatMoney(item.compareAtPrice)}
+                      {formatPrice(item.compareAtPrice)}
                     </span>
                   )}
                 </div>
@@ -375,31 +375,7 @@ const Wishlist = () => {
         )}
       </main>
 
-      {/* Footer */}
-      <footer className="mt-16 w-full border-t border-line bg-surface py-16">
-        <div className="mx-auto flex max-w-[1440px] flex-col items-center justify-between gap-4 px-6 md:flex-row">
-          <Link
-            to="/"
-            className="font-display text-2xl font-bold uppercase tracking-tight text-paper"
-          >
-            STITCH
-          </Link>
-          <nav className="flex gap-8">
-            {['Archive', 'Stores', 'Shipping', 'Legal'].map((l) => (
-              <a
-                key={l}
-                href="#"
-                className="font-display text-xs uppercase tracking-[0.15em] text-muted transition-colors hover:text-paper"
-              >
-                {l}
-              </a>
-            ))}
-          </nav>
-          <p className="font-display text-[10px] uppercase tracking-[0.15em] text-muted">
-            © 2024 STITCH. Engineered for the fringe.
-          </p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };

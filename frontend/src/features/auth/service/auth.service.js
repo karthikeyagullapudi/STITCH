@@ -1,88 +1,46 @@
 import axios from 'axios';
+import { API_BASE, request } from '../../../shared/api/request.js';
 
 const authApiInstance = axios.create({
-  baseURL: 'http://localhost:3000/api',
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  baseURL: `${API_BASE}/auth`,
   withCredentials: true,
 });
 
-export const register = async ({
-  email,
-  password,
-  name: { firstName, lastName },
-  phone,
-  role,
-  newsletter,
-}) => {
-  try {
-    const response = await authApiInstance.post('/auth/register', {
-      email,
-      password,
-      name: {
-        firstName,
-        lastName,
-      },
-      phone,
-      role,
-      newsletter,
-    });
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
-};
+// Full-page redirect target for "Continue with Google".
+export const GOOGLE_AUTH_URL = `${API_BASE}/auth/google`;
 
-export const login = async ({ email, password, role, remember }) => {
-  try {
-    const response = await authApiInstance.post('/auth/login', {
-      email,
-      password,
-      role,
-      remember,
-    });
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
-};
+export const register = (payload) =>
+  request(() => authApiInstance.post('/register', payload), 'Registration failed');
 
-export const getMe = async () => {
-  try {
-    const response = await authApiInstance.get('/auth/me');
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
-};
+export const login = (payload) =>
+  request(() => authApiInstance.post('/login', payload), 'Login failed');
 
-export const logout = async () => {
-  const response = await authApiInstance.post('/auth/logout');
-  return response.data;
-};
+export const getMe = () =>
+  request(() => authApiInstance.get('/me'), 'Not signed in');
 
-export const forgotPassword = async (email) => {
-  const response = await authApiInstance.post('/auth/forgot-password', {
-    email,
-  });
-  return response.data;
-};
+export const logout = () =>
+  request(() => authApiInstance.post('/logout'), 'Logout failed');
 
-export const resetPassword = async (token, password) => {
-  const response = await authApiInstance.post(
-    `/auth/reset-password/${token}`,
-    { password },
+export const forgotPassword = (email) =>
+  request(
+    () => authApiInstance.post('/forgot-password', { email }),
+    'Request failed',
   );
-  return response.data;
-};
 
-export const verifyEmail = async (token) => {
-  const response = await authApiInstance.get(`/auth/verify-email/${token}`);
-  return response.data;
-};
+export const resetPassword = (token, password) =>
+  request(
+    () => authApiInstance.post(`/reset-password/${token}`, { password }),
+    'Reset failed',
+  );
 
-export const resendVerificationEmail = async () => {
-  const response = await authApiInstance.post('/auth/verify-email/resend');
-  return response.data;
-};
+export const verifyEmail = (token) =>
+  request(
+    () => authApiInstance.get(`/verify-email/${token}`),
+    'Verification failed',
+  );
+
+export const resendVerificationEmail = () =>
+  request(
+    () => authApiInstance.post('/verify-email/resend'),
+    'Could not send email',
+  );

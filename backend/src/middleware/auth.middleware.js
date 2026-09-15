@@ -41,49 +41,21 @@ export const protect = async (req, res, next) => {
   }
 };
 
-export const authAdmin = async (req, res, next) => {
-  const token = req.cookies?.token;
-
-  if (!token) {
-    return res.status(401).json({
+const requireApprovedAdmin = (req, res, next) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({
       success: false,
-      message: 'Not authorized, no token',
+      message: 'Not authorized, user is not an admin',
     });
   }
-  try {
-    const decoded = jwt.verify(token, Config.JWT_SECRET);
-    const user = await userModel.findById(decoded.id).select('-password');
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'Not authorized, user not found',
-      });
-    }
-    if (!user.status) {
-      return res.status(403).json({
-        success: false,
-        message: 'Your account has been blocked',
-      });
-    }
-    if (user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Not authorized, user is not an admin',
-      });
-    }
-    if (!user.adminAproved) {
-      return res.status(403).json({
-        success: false,
-        message: 'Not authorized, admin account is pending approval',
-      });
-    }
-    req.user = user;
-    next();
-  } catch (error) {
-    return res.status(401).json({
+  if (!req.user.adminApproved) {
+    return res.status(403).json({
       success: false,
-      message: 'Not authorized, token failed',
-      error: error.message,
+      message: 'Not authorized, admin account is pending approval',
     });
   }
+  next();
 };
+
+// Signed in (via `protect`) and an approved admin. Express runs both in order.
+export const authAdmin = [protect, requireApprovedAdmin];

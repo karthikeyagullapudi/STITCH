@@ -9,8 +9,10 @@ import { useAuth } from '../features/auth/hook/useAuth';
 function AppContent() {
   const { loadUser } = useAuth();
 
+  // Restore the session once on startup.
   useEffect(() => {
     loadUser();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return <RouterProvider router={router} />;

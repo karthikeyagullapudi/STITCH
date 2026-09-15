@@ -7,9 +7,7 @@ import {
   clearCart,
 } from '../service/cart.api.js';
 import { setCart, setLoading, setError } from '../state/cart.slice.js';
-
-const readError = (error, fallback) =>
-  error?.message || error?.errors?.map((e) => e.msg).join(', ') || fallback;
+import { readError } from '../../../shared/api/request.js';
 
 export const useCart = () => {
   const dispatch = useDispatch();

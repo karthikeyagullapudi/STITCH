@@ -86,7 +86,7 @@ export const uploadAvatar = async (req, res) => {
     const { fileUrl } = await uploadFile({
       buffer: req.file.buffer,
       fileName: req.file.originalname,
-      foulder: 'stitch/avatars',
+      folder: 'stitch/avatars',
     });
     req.user.profilePic = fileUrl;
     await req.user.save();

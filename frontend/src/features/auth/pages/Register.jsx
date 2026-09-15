@@ -4,6 +4,7 @@ import { FaGoogle } from 'react-icons/fa';
 import { useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useAuth } from '../hook/useAuth';
+import { GOOGLE_AUTH_URL } from '../service/auth.service';
 
 const labelCls =
   'mb-2 block font-display text-xs font-bold uppercase tracking-[0.1em] text-muted';
@@ -317,7 +318,7 @@ const Register = () => {
                   type="button"
                   className={`${socialBtnCls} w-full`}
                   onClick={() => {
-                    window.location.href = 'http://localhost:3000/api/auth/google';
+                    window.location.href = GOOGLE_AUTH_URL;
                   }}
                 >
                   <FaGoogle className="h-4 w-4" />

@@ -4,6 +4,7 @@ import { FaGoogle } from 'react-icons/fa';
 import { useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useAuth } from '../hook/useAuth';
+import { GOOGLE_AUTH_URL } from '../service/auth.service';
 
 const labelCls =
   'block font-display text-xs font-bold uppercase tracking-[0.1em] text-muted';
@@ -67,7 +68,7 @@ const Login = () => {
   };
 
   const handleGoogleSignIn = () => {
-    window.location.href = 'http://localhost:3000/api/auth/google';
+    window.location.href = GOOGLE_AUTH_URL;
   };
 
   return (

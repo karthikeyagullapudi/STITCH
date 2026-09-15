@@ -2,7 +2,7 @@ import { useDispatch } from 'react-redux';
 import {
   createProducts,
   getAdminProducts,
-  getsAllProducts,
+  getAllProducts,
   getProductBySlug,
   getAdminProductById,
   updateProduct,
@@ -16,6 +16,7 @@ import {
   setLoading,
   setError,
 } from '../state/products.slice.js';
+import { readError } from '../../../shared/api/request.js';
 
 export const useProduct = () => {
   const dispatch = useDispatch();
@@ -27,12 +28,8 @@ export const useProduct = () => {
       const data = await createProducts(productData);
       return { success: true, product: data.product };
     } catch (error) {
-      const errorMsg =
-        error?.message ||
-        error?.errors?.map((e) => e.msg).join(', ') ||
-        'Failed to create product';
+      const errorMsg = readError(error, 'Failed to create product');
       dispatch(setError(errorMsg));
-      console.log(error);
       return { success: false, error: errorMsg };
     } finally {
       dispatch(setLoading(false));
@@ -56,9 +53,8 @@ export const useProduct = () => {
       );
       return data?.products;
     } catch (error) {
-      const errorMsg = error?.message || 'Failed to fetch products';
+      const errorMsg = readError(error, 'Failed to fetch products');
       dispatch(setError(errorMsg));
-      console.log(error);
       return [];
     } finally {
       dispatch(setLoading(false));
@@ -69,7 +65,7 @@ export const useProduct = () => {
     try {
       dispatch(setLoading(true));
       dispatch(setError(null));
-      const data = await getsAllProducts(params);
+      const data = await getAllProducts(params);
       dispatch(setAllProducts(data?.products));
       dispatch(
         setProductsMeta({
@@ -81,9 +77,8 @@ export const useProduct = () => {
       );
       return data?.products;
     } catch (error) {
-      const errorMsg = error?.message || 'Failed to fetch products';
+      const errorMsg = readError(error, 'Failed to fetch products');
       dispatch(setError(errorMsg));
-      console.log(error);
       return [];
     } finally {
       dispatch(setLoading(false));
@@ -97,9 +92,8 @@ export const useProduct = () => {
       const data = await getProductBySlug(slug);
       return data;
     } catch (error) {
-      const errorMsg = error?.message || 'Failed to fetch product';
+      const errorMsg = readError(error, 'Failed to fetch product');
       dispatch(setError(errorMsg));
-      console.log(error);
       return null;
     } finally {
       dispatch(setLoading(false));
@@ -111,13 +105,7 @@ export const useProduct = () => {
     try {
       return { success: true, ...(await call()) };
     } catch (error) {
-      return {
-        success: false,
-        error:
-          error?.message ||
-          error?.errors?.map((e) => e.msg).join(', ') ||
-          fallback,
-      };
+      return { success: false, error: readError(error, fallback) };
     }
   };
 

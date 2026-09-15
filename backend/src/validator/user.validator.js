@@ -1,13 +1,6 @@
 import mongoose from 'mongoose';
-import { body, param, validationResult } from 'express-validator';
-
-const validate = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
-  next();
-};
+import { body, param } from 'express-validator';
+import { validate } from './common.validator.js';
 
 const requiredText = (field, label) =>
   body(field).trim().notEmpty().withMessage(`${label} is required`);

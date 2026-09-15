@@ -14,9 +14,7 @@ import {
   startPending,
   stopPending,
 } from '../state/wishlist.slice.js';
-
-const readError = (error, fallback) =>
-  error?.message || error?.errors?.map((e) => e.msg).join(', ') || fallback;
+import { readError } from '../../../shared/api/request.js';
 
 // Saved items come back populated, so `item.product` is an object; fall back to
 // the raw id for any item that was not populated.

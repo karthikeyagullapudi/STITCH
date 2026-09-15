@@ -19,7 +19,6 @@ const productSlice = createSlice({
       pages: 1,
       facets: { categories: [], sizes: [], tags: [] },
     },
-    productdetail: {},
     loading: false,
     errors: null,
   },

@@ -232,8 +232,8 @@ export const getAdmins = async (req, res) => {
   try {
     const admins = await userModel
       .find({ role: 'admin' })
-      .select('name email adminAproved createdAt')
-      .sort({ adminAproved: 1, createdAt: -1 })
+      .select('name email adminApproved createdAt')
+      .sort({ adminApproved: 1, createdAt: -1 })
       .lean();
     return res.status(200).json({
       success: true,
@@ -257,10 +257,10 @@ export const updateAdminApproval = async (req, res) => {
     const admin = await userModel
       .findOneAndUpdate(
         { _id: req.params.userId, role: 'admin' },
-        { $set: { adminAproved: req.body.approved } },
+        { $set: { adminApproved: req.body.approved } },
         { returnDocument: 'after' },
       )
-      .select('name email adminAproved createdAt');
+      .select('name email adminApproved createdAt');
     if (!admin) {
       return res
         .status(404)
@@ -268,7 +268,7 @@ export const updateAdminApproval = async (req, res) => {
     }
     return res.status(200).json({
       success: true,
-      message: admin.adminAproved ? 'Admin approved' : 'Admin access revoked',
+      message: admin.adminApproved ? 'Admin approved' : 'Admin access revoked',
       admin,
     });
   } catch (error) {

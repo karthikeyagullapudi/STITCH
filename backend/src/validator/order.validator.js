@@ -1,20 +1,5 @@
-import mongoose from 'mongoose';
-import { body, param, validationResult } from 'express-validator';
-
-const validate = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
-  next();
-};
-
-const isValidObjectId = (label) => (value) => {
-  if (!mongoose.Types.ObjectId.isValid(value)) {
-    throw new Error(`${label} is not a valid id`);
-  }
-  return true;
-};
+import { body, param } from 'express-validator';
+import { validate, isValidObjectId } from './common.validator.js';
 
 const couponCode = body('couponCode')
   .optional({ values: 'falsy' })

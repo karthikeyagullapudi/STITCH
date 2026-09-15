@@ -117,7 +117,7 @@ export const userLogin = async (req, res) => {
       });
     }
 
-    if (user.role === 'admin' && !user.adminAproved) {
+    if (user.role === 'admin' && !user.adminApproved) {
       return res.status(403).json({
         success: false,
         message: 'Your admin account is pending approval.',

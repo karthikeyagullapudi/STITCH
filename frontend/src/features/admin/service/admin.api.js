@@ -1,8 +1,8 @@
 import axios from 'axios';
-import { request } from '../../../shared/api/request.js';
+import { API_BASE, request } from '../../../shared/api/request.js';
 
 const adminApiInstance = axios.create({
-  baseURL: '/api/admin',
+  baseURL: `${API_BASE}/admin`,
   withCredentials: true,
 });
 

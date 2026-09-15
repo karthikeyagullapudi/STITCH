@@ -1,8 +1,8 @@
 import axios from 'axios';
-import { request } from '../../../shared/api/request.js';
+import { API_BASE, request } from '../../../shared/api/request.js';
 
 const newsletterApiInstance = axios.create({
-  baseURL: '/api/newsletter',
+  baseURL: `${API_BASE}/newsletter`,
   withCredentials: true,
 });
 

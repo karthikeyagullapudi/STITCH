@@ -1,8 +1,8 @@
 import axios from 'axios';
-import { request } from '../../../shared/api/request.js';
+import { API_BASE, request } from '../../../shared/api/request.js';
 
 const settingsApiInstance = axios.create({
-  baseURL: '/api/settings',
+  baseURL: `${API_BASE}/settings`,
   withCredentials: true,
 });
 

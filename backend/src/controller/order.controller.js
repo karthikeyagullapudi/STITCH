@@ -10,7 +10,7 @@ import settingsModel from '../model/settings.model.js';
 import userModel from '../model/user.model.js';
 import { getCartDetails } from './cart.controller.js';
 import { notifyBackInStock } from './wishlist.controller.js';
-import { createOrder, refundPayment } from '../services/paymet.servce.js';
+import { createOrder, refundPayment } from '../services/payment.services.js';
 import { calculatePricing, getCouponError } from '../utils/pricing.js';
 import { getPagination, escapeRegex } from '../utils/query.js';
 import { Config } from '../config/config.js';

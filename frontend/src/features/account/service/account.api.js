@@ -1,8 +1,8 @@
 import axios from 'axios';
-import { request } from '../../../shared/api/request.js';
+import { API_BASE, request } from '../../../shared/api/request.js';
 
 const accountApiInstance = axios.create({
-  baseURL: '/api/users/me',
+  baseURL: `${API_BASE}/users/me`,
   withCredentials: true,
 });
 

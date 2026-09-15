@@ -104,11 +104,11 @@ Everything incomplete or broken across the app, in order of urgency.
 ---
 
 ## 4. Cleanup & consistency
-- [ ] Hardcoded `http://localhost:3000` in auth service, Login, Register (everything else uses the `/api` proxy); frontend `.env.example`.
-- [ ] Typos: `paymet.servce.js`, `foulder`, `adminAproved`, `getsAllProducts`.
-- [ ] Dead code: unreachable `return result` in storage service, `productdetail` slice field, unused `sizes`/`colorways` in CreateProduct, `RazorpayOrderOptions` import, `console.log`s.
-- [ ] Duplication: `protect`/`authAdmin` token logic, `validate` helper ×4, `currencySymbols`/`formatPrice` ×6, footer ×5 (different copyright years).
-- [ ] Consistent price formatting (`₹12450` vs `₹12,450`).
-- [ ] Remove server-only `passport` deps from the frontend.
-- [ ] Project README (frontend README is the Vite template).
-- [ ] 15 lint warnings (hook deps, unused vars).
+- [x] Hardcoded `http://localhost:3000` in auth service, Login, Register (everything else uses the `/api` proxy); frontend `.env.example`.
+- [x] Typos: `paymet.servce.js`, `foulder`, `adminAproved`, `getsAllProducts`.
+- [x] Dead code: unreachable `return result` in storage service, `productdetail` slice field, unused `sizes`/`colorways` in CreateProduct, `RazorpayOrderOptions` import, `console.log`s.
+- [x] Duplication: `protect`/`authAdmin` token logic, `validate` helper ×4, `currencySymbols`/`formatPrice` ×6, footer ×5 (different copyright years).
+- [x] Consistent price formatting (`₹12450` vs `₹12,450`).
+- [x] Remove server-only `passport` deps from the frontend.
+- [x] Project README (frontend README is the Vite template).
+- [x] Lint warnings (now zero).

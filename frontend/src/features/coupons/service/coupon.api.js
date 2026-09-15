@@ -1,8 +1,8 @@
 import axios from 'axios';
-import { request } from '../../../shared/api/request.js';
+import { API_BASE, request } from '../../../shared/api/request.js';
 
 const couponApiInstance = axios.create({
-  baseURL: '/api/coupons',
+  baseURL: `${API_BASE}/coupons`,
   withCredentials: true,
 });
 

@@ -63,7 +63,7 @@ const userSchema = new mongoose.Schema(
       enum: ['admin', 'user'],
       default: 'user',
     },
-    adminAproved: {
+    adminApproved: {
       type: Boolean,
       default: false,
       required: function () {
