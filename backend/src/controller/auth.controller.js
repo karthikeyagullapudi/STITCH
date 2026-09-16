@@ -6,13 +6,12 @@ import jwt from 'jsonwebtoken';
 
 const DAY = 24 * 60 * 60 * 1000;
 
-// In production the API and storefront live on different domains, so the
-// cookie must be HTTPS-only and allowed cross-site.
-const isProduction = Config.NODE_ENV === 'production';
+// HTTPS-only in production; SameSite comes from config because a storefront
+// on another domain needs 'none'.
 const cookieOptions = {
   httpOnly: true,
-  secure: isProduction,
-  sameSite: isProduction ? 'none' : 'lax',
+  secure: Config.NODE_ENV === 'production',
+  sameSite: Config.COOKIE_SAME_SITE,
 };
 
 // One message for every credential failure so login can't be used to find

@@ -1,0 +1,57 @@
+# Render Blueprint — one web service that serves both the API and the built
+# storefront from the same domain (so the login cookie is first-party).
+# Deploy: Render Dashboard → New → Blueprint → pick this repository.
+services:
+  - type: web
+    name: stitch
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: >-
+      npm ci --prefix backend &&
+      npm ci --include=dev --prefix frontend &&
+      npm run build --prefix frontend
+    startCommand: npm start --prefix backend
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      # CLIENT_URL and GOOGLE_CALLBACK_URL default to this service's own URL.
+
+      # Required — Render asks for these when the Blueprint is created.
+      - key: DB_URI
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: IMAGEKIT_PRIVATE_KEY
+        sync: false
+      - key: RAZORPAY_API_KEY
+        sync: false
+      - key: RAZORPAY_API_SECRET
+        sync: false
+
+      # Optional — leave blank to skip (emails/SMS are then written to the logs).
+      - key: RAZORPAY_WEBHOOK_SECRET
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_PHONE_NUMBER
+        sync: false

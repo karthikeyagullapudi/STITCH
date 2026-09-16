@@ -78,7 +78,19 @@ npm run dev             # http://localhost:5173 — /api is proxied to the backe
 - **Google sign-in** — `GOOGLE_CALLBACK_URL` must match the redirect URI registered in Google Cloud (`http://localhost:3000/api/auth/google/callback` locally).
 - **First admin** — admin sign-ups need approval. Approve the very first admin directly in MongoDB by setting `adminApproved: true` on that user; after that, admins approve each other under **Admin → Settings → Admin Team**.
 
-## Deploying
+## Deploying (Render)
 
-- Set `NODE_ENV=production` on the backend. The session cookie then becomes `Secure` and `SameSite=None`, so the API must be served over HTTPS, and only `CLIENT_URL` is allowed by CORS.
-- Build the frontend with `VITE_API_URL` set to the backend origin (see `frontend/.env.example`).
+`render.yaml` deploys everything as **one web service**: Render builds the frontend, and Express serves it alongside the API, so the storefront and `/api` share a domain and the login cookie stays first-party.
+
+1. Push the code to GitHub.
+2. In Render: **New → Blueprint**, pick the repository, and fill in the values it asks for (`DB_URI`, Google, ImageKit and Razorpay keys; the optional ones can stay blank). `JWT_SECRET` is generated for you.
+3. After the first deploy, note the service URL (e.g. `https://stitch.onrender.com`). `CLIENT_URL` and `GOOGLE_CALLBACK_URL` default to it automatically.
+4. **Google Cloud Console** → your OAuth client: add `https://<service-url>` to *Authorized JavaScript origins* and `https://<service-url>/api/auth/google/callback` to *Authorized redirect URIs*.
+5. **MongoDB Atlas** → *Network Access*: allow Render to connect (`0.0.0.0/0`, or Render's outbound IPs for your region).
+6. **Razorpay** (optional): add a webhook to `https://<service-url>/api/orders/webhook` for `payment.captured` and `payment.failed`, and set `RAZORPAY_WEBHOOK_SECRET` in Render.
+
+Notes:
+
+- The free plan sleeps after ~15 minutes without traffic; the first request afterwards takes about a minute.
+- Without SMTP/Twilio settings, verification links, reset links and phone codes appear in the service's **Logs** tab.
+- To host the frontend separately instead, build it with `VITE_API_URL` set to the API origin and set `COOKIE_SAME_SITE=none` on the backend (browsers that block third-party cookies, such as Safari, won't keep users signed in).
