@@ -40,6 +40,13 @@ authRouter.get(
     failureRedirect: `${Config.CLIENT_URL}/login`,
   }),
   googleAuthCallBack,
+  // Google rejects expired or reused codes (e.g. a refreshed callback page);
+  // send the user back to sign in instead of showing a server error.
+  // Express only treats it as an error handler because it takes 4 args.
+  (error, req, res, next) => {
+    console.error('Google Auth Error:', error.message);
+    res.redirect(`${Config.CLIENT_URL}/login?error=google_auth_failed`);
+  },
 );
 
 authRouter.get('/me', protect, (req, res) => {

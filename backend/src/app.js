@@ -25,8 +25,9 @@ const isProduction = Config.NODE_ENV === 'production';
 // The built storefront, served by this app in production (one domain for both).
 const clientDist = fileURLToPath(new URL('../../frontend/dist', import.meta.url));
 
-// Render terminates HTTPS in front of the app; trust it for client IPs.
-if (isProduction) app.set('trust proxy', 1);
+// On Render, requests pass through Cloudflare and Render's load balancer.
+// Trusting both hops makes req.ip the visitor's address (used by rate limits).
+if (isProduction) app.set('trust proxy', 2);
 
 // Any localhost port is fine while developing; production only allows CLIENT_URL.
 const isAllowedOrigin = (origin) =>
@@ -41,8 +42,8 @@ app.use(
         imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
         styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
         fontSrc: ["'self'", 'https://fonts.gstatic.com'],
-        // Razorpay Checkout loads its script and opens its own frames.
-        scriptSrc: ["'self'", 'https://checkout.razorpay.com'],
+        // Razorpay Checkout loads scripts (checkout, risk checks) and frames.
+        scriptSrc: ["'self'", 'https://*.razorpay.com'],
         frameSrc: ["'self'", 'https://*.razorpay.com'],
         connectSrc: ["'self'", 'https://*.razorpay.com'],
       },

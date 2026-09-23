@@ -22,6 +22,15 @@ const Footer = () => (
           © {new Date().getFullYear()} STITCH Technical Apparel. All rights
           reserved.
         </span>
+        {/* Required attribution for product photos sourced via the Pexels API. */}
+        <a
+          href="https://www.pexels.com"
+          target="_blank"
+          rel="noreferrer"
+          className="font-display text-[11px] uppercase tracking-wide text-faint transition-colors hover:text-accent"
+        >
+          Photos provided by Pexels
+        </a>
       </div>
       <nav className="flex flex-wrap justify-center gap-8">
         {links.map(({ label, to }) => (
