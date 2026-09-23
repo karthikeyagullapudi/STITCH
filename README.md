@@ -2,6 +2,8 @@
 
 A full-stack techwear store: storefront, accounts, checkout with Razorpay, and an admin panel.
 
+🔗 **Live Demo:** [https://stitch-evyb.onrender.com](https://stitch-evyb.onrender.com)
+
 | Part | Stack |
 | --- | --- |
 | `frontend/` | React 19, Vite, Redux Toolkit, React Router, Tailwind CSS v4 |
