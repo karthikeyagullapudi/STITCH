@@ -82,14 +82,18 @@ npm run dev             # http://localhost:5173 — /api is proxied to the backe
 
 ## Deploying (Render)
 
-`render.yaml` deploys everything as **one web service**: Render builds the frontend, and Express serves it alongside the API, so the storefront and `/api` share a domain and the login cookie stays first-party.
+The project deploys as **one web service**: Render builds the frontend, and Express serves it alongside the API so the storefront and `/api` share a domain and the login cookie stays first-party.
 
-1. Push the code to GitHub.
-2. In Render: **New → Blueprint**, pick the repository, and fill in the values it asks for (`DB_URI`, Google, ImageKit and Razorpay keys; the optional ones can stay blank). `JWT_SECRET` is generated for you.
-3. After the first deploy, note the service URL (e.g. `https://stitch.onrender.com`). `CLIENT_URL` and `GOOGLE_CALLBACK_URL` default to it automatically.
-4. **Google Cloud Console** → your OAuth client: add `https://<service-url>` to *Authorized JavaScript origins* and `https://<service-url>/api/auth/google/callback` to *Authorized redirect URIs*.
-5. **MongoDB Atlas** → *Network Access*: allow Render to connect (`0.0.0.0/0`, or Render's outbound IPs for your region).
-6. **Razorpay** (optional): add a webhook to `https://<service-url>/api/orders/webhook` for `payment.captured` and `payment.failed`, and set `RAZORPAY_WEBHOOK_SECRET` in Render.
+1. In Render: create a new **Web Service** connected to your repository.
+2. Configure settings:
+   - **Build Command:** `npm ci --prefix backend && npm ci --include=dev --prefix frontend && npm run build --prefix frontend`
+   - **Start Command:** `npm start --prefix backend`
+   - **Health Check Path:** `/api/health`
+3. Add the environment variables specified in [`backend/.env.example`](backend/.env.example).
+4. After deploy, the service URL (e.g. `https://stitch-evyb.onrender.com`) automatically serves both the frontend and API.
+5. **Google Cloud Console** → OAuth client: add `https://<service-url>` to *Authorized JavaScript origins* and `https://<service-url>/api/auth/google/callback` to *Authorized redirect URIs*.
+6. **MongoDB Atlas** → *Network Access*: allow Render to connect (`0.0.0.0/0` or Render outbound IPs).
+7. **Razorpay** (optional): add a webhook to `https://<service-url>/api/orders/webhook` for `payment.captured` and `payment.failed`, and set `RAZORPAY_WEBHOOK_SECRET` in Render.
 
 Notes:
 
