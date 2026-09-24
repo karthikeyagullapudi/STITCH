@@ -22,9 +22,18 @@ import {
 const orderRouter = Router();
 
 orderRouter.post('/summary', protect, orderSummaryValidator, getOrderSummary);
-orderRouter.post('/checkout', protect, checkoutValidator, createOrderController);
-orderRouter.post('/verify', protect, verifyOrderValidator, verifyOrderController);
-// Called by Razorpay, authenticated by its signature header.
+orderRouter.post(
+  '/checkout',
+  protect,
+  checkoutValidator,
+  createOrderController,
+);
+orderRouter.post(
+  '/verify',
+  protect,
+  verifyOrderValidator,
+  verifyOrderController,
+);
 orderRouter.post('/webhook', razorpayWebhook);
 
 orderRouter.get('/admin/all', authAdmin, getAllOrders);
