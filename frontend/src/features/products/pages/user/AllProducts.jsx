@@ -93,10 +93,10 @@ const AllProducts = () => {
   );
 
   return (
-    <div className="min-h-screen bg-ink font-body text-paper">
+    <div className="flex min-h-screen flex-col bg-ink font-body text-paper">
       <Header />
 
-      <main className="mx-auto max-w-[1440px] px-6 pb-16 pt-28">
+      <main className="mx-auto w-full flex-1 max-w-[1440px] px-6 pb-16 pt-28">
         {/* Collection header */}
         <section className="mb-12 flex flex-wrap items-end justify-between gap-6">
           <div>

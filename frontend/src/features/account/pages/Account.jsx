@@ -18,10 +18,10 @@ const Account = () => {
   };
 
   return (
-    <div className="min-h-screen bg-ink font-body text-paper">
+    <div className="flex min-h-screen flex-col bg-ink font-body text-paper">
       <Header />
 
-      <main className="mx-auto max-w-[1440px] px-6 pb-16 pt-28 md:pt-32">
+      <main className="mx-auto w-full flex-1 max-w-[1440px] px-6 pb-16 pt-28 md:pt-32">
         <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="mb-2 font-display text-[11px] font-bold uppercase tracking-[0.2em] text-muted">

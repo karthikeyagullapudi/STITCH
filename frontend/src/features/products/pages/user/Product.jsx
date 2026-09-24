@@ -74,10 +74,10 @@ const Product = () => {
   }
 
   return (
-    <div className="min-h-screen bg-ink font-body text-paper">
+    <div className="flex min-h-screen flex-col bg-ink font-body text-paper">
       <Header />
 
-      <main className="mx-auto max-w-[1440px] px-6 pt-24 pb-16 md:pt-28">
+      <main className="mx-auto w-full flex-1 max-w-[1440px] px-6 pt-24 pb-16 md:pt-28">
         {/* Breadcrumb */}
         <nav className="mb-8 flex items-center gap-2 font-display text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
           <Link to="/" className="transition-colors hover:text-paper">

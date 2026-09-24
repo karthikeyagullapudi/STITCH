@@ -48,10 +48,10 @@ const OrderDetail = () => {
   const currentStep = order ? steps.indexOf(order.status) : -1;
 
   return (
-    <div className="min-h-screen bg-ink font-body text-paper">
+    <div className="flex min-h-screen flex-col bg-ink font-body text-paper">
       <Header />
 
-      <main className="mx-auto max-w-[1440px] px-6 pb-16 pt-28 md:pt-32">
+      <main className="mx-auto w-full flex-1 max-w-[1440px] px-6 pb-16 pt-28 md:pt-32">
         {placed && (
           <div className="mb-8 flex items-center gap-4 border border-emerald-500/30 bg-emerald-500/10 p-6">
             <FiCheckCircle className="h-8 w-8 shrink-0 text-emerald-400" />

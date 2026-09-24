@@ -83,10 +83,10 @@ const Cart = () => {
     .slice(0, 4);
 
   return (
-    <div className="min-h-screen bg-ink font-body text-paper">
+    <div className="flex min-h-screen flex-col bg-ink font-body text-paper">
       <Header />
 
-      <main className="mx-auto max-w-[1440px] px-6 pb-16 pt-28 md:pt-32">
+      <main className="mx-auto w-full flex-1 max-w-[1440px] px-6 pb-16 pt-28 md:pt-32">
         {/* Breadcrumb + heading */}
         <div className="mb-8">
           <p className="mb-2 font-display text-[11px] font-bold uppercase tracking-[0.2em] text-muted">
