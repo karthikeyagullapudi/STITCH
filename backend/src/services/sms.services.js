@@ -9,10 +9,10 @@ const client = Config.TWILIO_ACCOUNT_SID
 export const sendSms = async ({ to, body }) => {
   // Numbers are stored without a country code; the store operates in India.
   const phone = to.startsWith('+') ? to : `+91${to}`;
-  if (!client) {
-    console.log(`\n[sms] To: ${phone}\n${body}\n`);
-    return;
-  }
+  // if (!client) {
+  //   console.log(`\n[sms] To: ${phone}\n${body}\n`);
+  //   return;
+  // }
   await client.messages.create({
     from: Config.TWILIO_PHONE_NUMBER,
     to: phone,
