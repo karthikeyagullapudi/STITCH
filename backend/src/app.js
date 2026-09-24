@@ -34,6 +34,11 @@ const isAllowedOrigin = (origin) =>
   origin === Config.CLIENT_URL ||
   (!isProduction && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin));
 
+// Razorpay Checkout spans several razorpay.com origins: its script, an iframe,
+// API calls, and a form POST carrying the payment result back. Helmet fills any
+// directive left unset from its own defaults, so each one has to be named here.
+const RAZORPAY = 'https://*.razorpay.com';
+
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -42,12 +47,17 @@ app.use(
         imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
         styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
         fontSrc: ["'self'", 'https://fonts.gstatic.com'],
-        // Razorpay Checkout loads scripts (checkout, risk checks) and frames.
-        scriptSrc: ["'self'", 'https://*.razorpay.com'],
-        frameSrc: ["'self'", 'https://*.razorpay.com'],
-        connectSrc: ["'self'", 'https://*.razorpay.com'],
+        scriptSrc: ["'self'", RAZORPAY],
+        frameSrc: ["'self'", RAZORPAY],
+        childSrc: ["'self'", RAZORPAY],
+        connectSrc: ["'self'", RAZORPAY],
+        formAction: ["'self'", RAZORPAY],
+        workerSrc: ["'self'", 'blob:'],
       },
     },
+    // Checkout reads the result back through window.opener; the default
+    // 'same-origin' severs that and the payment window never resolves.
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
   }),
 );
 app.use(
